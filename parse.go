@@ -19,14 +19,20 @@ func parseMsg(data string) {
 		case event.MESSAGE_TYPE_PRIVATE:
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
-			ok := tuling(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			ok:=false
+			if TulingKey !="" {
+				ok = tuling(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			}
 			if !ok {
 				qingyunke(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 		case event.MESSAGE_TYPE_GROUP:
 			var req event.MessageGroup
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
-			ok := tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
+			ok:=false
+			if TulingKey !="" {
+				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
+			}
 			if !ok {
 				qingyunke(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
@@ -92,21 +98,34 @@ func parseMsg(data string) {
 
 // tuling 图灵机器人聊天
 func tuling(message string, userID int64, groupID int64, isGroup bool, bootId int64) bool {
-	if strings.HasPrefix(message, "#") || strings.Contains(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId))) {
+	if isGroup {
+		// 私聊
 		text, err := tulingText(message, userID, groupID)
 		if err != nil || text == "" {
 			return false
 		}
-		if isGroup {
-			_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
-				GroupId: groupID,
-				Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
-			})
-			return true
-		}
 		_, _ = bot_adapter_client.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
 			UserId:  userID,
 			Message: []byte(text),
+		})
+		return true
+	}
+	var msg string
+
+	if strings.HasPrefix(message, "#") {
+		msg = strings.Replace(message, "#", "", 1)
+	}
+	if strings.Contains(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId))) {
+		msg = strings.Replace(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "", 1)
+	}
+	if msg != "" {
+		text, err := tulingText(msg, userID, groupID)
+		if err != nil || text == "" {
+			return false
+		}
+		_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
+			GroupId: groupID,
+			Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
 		})
 		return true
 	}
@@ -115,21 +134,34 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 
 // qingyunke 青云客机器人聊天
 func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId int64) bool {
-	if strings.HasPrefix(message, "#") || strings.Contains(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId))) {
+	if !isGroup {
+		// 私聊
 		text, err := qingyunkeText(message, userID, groupID)
 		if err != nil || text == "" {
 			return false
 		}
-		if isGroup {
-			_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
-				GroupId: groupID,
-				Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
-			})
-			return true
-		}
 		_, _ = bot_adapter_client.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
 			UserId:  userID,
 			Message: []byte(text),
+		})
+		return true
+	}
+	var msg string
+
+	if strings.HasPrefix(message, "#") {
+		msg = strings.Replace(message, "#", "", 1)
+	}
+	if strings.Contains(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId))) {
+		msg = strings.Replace(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "", 1)
+	}
+	if msg != "" {
+		text, err := qingyunkeText(msg, userID, groupID)
+		if err != nil || text == "" {
+			return false
+		}
+		_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
+			GroupId: groupID,
+			Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
 		})
 		return true
 	}

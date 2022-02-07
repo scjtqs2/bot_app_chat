@@ -13,8 +13,12 @@ import (
 )
 
 // 图灵收费机器人 API
-var key = os.Getenv("TULING_KEY")
-var tuling_api = "http://openapi.tuling123.com/openapi/api/v2"
+var TulingKey string
+var tulingApi = "http://openapi.tuling123.com/openapi/api/v2"
+
+func init()  {
+	TulingKey = os.Getenv("TULING_KEY")
+}
 
 var tulingErrcode = []int64{4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007, 4100, 4200, 4300, 4400, 4500, 4600, 4602, 5000, 6000, 77002, 8008}
 
@@ -35,6 +39,9 @@ func post(postURL string, data MSG) ([]byte, error) {
 		//goland:noinspection GoDeferInLoop
 		defer res.Body.Close()
 	}
+	if err != nil {
+		return nil, err
+	}
 	r, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
@@ -46,7 +53,7 @@ func post(postURL string, data MSG) ([]byte, error) {
 func tulingText(message string, user_id int64, group_id int64) (string, error) {
 	postData := MSG{
 		"userInfo": MSG{
-			"apiKey":  key,
+			"apiKey":  TulingKey,
 			"userId":  user_id,
 			"groupId": group_id,
 		},
@@ -56,7 +63,7 @@ func tulingText(message string, user_id int64, group_id int64) (string, error) {
 			},
 		},
 	}
-	r, err := post(tuling_api, postData)
+	r, err := post(tulingApi, postData)
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +82,7 @@ func tulingText(message string, user_id int64, group_id int64) (string, error) {
 func tulingImage(url string, user_id int64, group_id int64) (string, error) {
 	postData := MSG{
 		"userInfo": MSG{
-			"apiKey":  key,
+			"apiKey":  TulingKey,
 			"userId":  user_id,
 			"groupId": group_id,
 		},
@@ -85,7 +92,7 @@ func tulingImage(url string, user_id int64, group_id int64) (string, error) {
 			},
 		},
 	}
-	r, err := post(tuling_api, postData)
+	r, err := post(tulingApi, postData)
 	if err != nil {
 		return "", err
 	}
