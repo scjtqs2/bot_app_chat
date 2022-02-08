@@ -4,6 +4,7 @@ import (
 	"github.com/kataras/iris/v12"
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/sha256"
+	"github.com/scjtqs2/bot_app_chat/bot"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"os"
@@ -46,8 +47,6 @@ func setup() {
 	}()
 }
 
-// MSG 消息Map
-type MSG map[string]interface{}
 
 func msginput(ctx iris.Context) {
 	raw, _ := ctx.GetBody()
@@ -58,7 +57,7 @@ func msginput(ctx iris.Context) {
 		log.Errorf("解密失败：enc:%s err:%s", enc, err.Error())
 	}
 	go parseMsg(msg)
-	_, _ = ctx.JSON(MSG{
+	_, _ = ctx.JSON(bot.MSG{
 		"code": 200,
 		"msg":  "received",
 	})

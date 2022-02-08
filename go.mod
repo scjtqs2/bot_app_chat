@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/kataras/iris/v12 v12.1.8
-	github.com/scjtqs2/bot_adapter v0.0.0-20220202170218-7650c0bf0204
+	github.com/scjtqs2/bot_adapter v0.0.0-20220208075349-b19a4fe218e8
 	github.com/sirupsen/logrus v1.8.1
 	github.com/tidwall/gjson v1.14.0
 )

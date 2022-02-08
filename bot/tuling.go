@@ -1,9 +1,11 @@
-package main
+package bot
 
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/scjtqs2/bot_adapter/coolq"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"io"
@@ -16,8 +18,9 @@ import (
 var TulingKey string
 var tulingApi = "http://openapi.tuling123.com/openapi/api/v2"
 
-func init()  {
+func init() {
 	TulingKey = os.Getenv("TULING_KEY")
+	log.Warnf("TulingKey:%s", TulingKey)
 }
 
 var tulingErrcode = []int64{4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007, 4100, 4200, 4300, 4400, 4500, 4600, 4602, 5000, 6000, 77002, 8008}
@@ -49,8 +52,12 @@ func post(postURL string, data MSG) ([]byte, error) {
 	return r, err
 }
 
-// tulingText 字符串匹配
-func tulingText(message string, user_id int64, group_id int64) (string, error) {
+// TulingText 字符串匹配
+func TulingText(message string, user_id int64, group_id int64) (string, error) {
+	msg := coolq.CleanCQCode(message)
+	if msg == "" {
+		return "", errors.New("empty message")
+	}
 	postData := MSG{
 		"userInfo": MSG{
 			"apiKey":  TulingKey,
@@ -59,7 +66,7 @@ func tulingText(message string, user_id int64, group_id int64) (string, error) {
 		},
 		"perception": MSG{
 			"inputText": MSG{
-				"text": message,
+				"text": msg,
 			},
 		},
 	}
@@ -79,7 +86,8 @@ func tulingText(message string, user_id int64, group_id int64) (string, error) {
 	return str, err
 }
 
-func tulingImage(url string, user_id int64, group_id int64) (string, error) {
+// TulingImage 图片
+func TulingImage(url string, user_id int64, group_id int64) (string, error) {
 	postData := MSG{
 		"userInfo": MSG{
 			"apiKey":  TulingKey,

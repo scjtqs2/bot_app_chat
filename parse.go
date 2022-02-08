@@ -7,6 +7,8 @@ import (
 	"github.com/scjtqs2/bot_adapter/coolq"
 	"github.com/scjtqs2/bot_adapter/event"
 	"github.com/scjtqs2/bot_adapter/pb/entity"
+	"github.com/scjtqs2/bot_app_chat/bot"
+	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"strings"
 )
@@ -19,8 +21,8 @@ func parseMsg(data string) {
 		case event.MESSAGE_TYPE_PRIVATE:
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
-			ok:=false
-			if TulingKey !="" {
+			ok := false
+			if bot.TulingKey != "" {
 				ok = tuling(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			if !ok {
@@ -29,8 +31,8 @@ func parseMsg(data string) {
 		case event.MESSAGE_TYPE_GROUP:
 			var req event.MessageGroup
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
-			ok:=false
-			if TulingKey !="" {
+			ok := false
+			if bot.TulingKey != "" {
 				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if !ok {
@@ -98,10 +100,11 @@ func parseMsg(data string) {
 
 // tuling 图灵机器人聊天
 func tuling(message string, userID int64, groupID int64, isGroup bool, bootId int64) bool {
-	if isGroup {
+	if !isGroup {
 		// 私聊
-		text, err := tulingText(message, userID, groupID)
+		text, err := bot.TulingText(message, userID, groupID)
 		if err != nil || text == "" {
+			log.Errorf("tuling msg error:%v", err)
 			return false
 		}
 		_, _ = bot_adapter_client.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -115,12 +118,13 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 	if strings.HasPrefix(message, "#") {
 		msg = strings.Replace(message, "#", "", 1)
 	}
-	if strings.Contains(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId))) {
-		msg = strings.Replace(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "", 1)
+	if ok, _ := coolq.IsAtMe(message, bootId); ok {
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "")
 	}
 	if msg != "" {
-		text, err := tulingText(msg, userID, groupID)
+		text, err := bot.TulingText(msg, userID, groupID)
 		if err != nil || text == "" {
+			log.Errorf("tuling msg error:%v", err)
 			return false
 		}
 		_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
@@ -136,8 +140,9 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId int64) bool {
 	if !isGroup {
 		// 私聊
-		text, err := qingyunkeText(message, userID, groupID)
+		text, err := bot.QingyunkeText(message, userID, groupID)
 		if err != nil || text == "" {
+			log.Errorf("qingyunke msg error:%v", err)
 			return false
 		}
 		_, _ = bot_adapter_client.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -151,12 +156,13 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId
 	if strings.HasPrefix(message, "#") {
 		msg = strings.Replace(message, "#", "", 1)
 	}
-	if strings.Contains(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId))) {
-		msg = strings.Replace(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "", 1)
+	if ok, _ := coolq.IsAtMe(message, bootId); ok {
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "")
 	}
 	if msg != "" {
-		text, err := qingyunkeText(msg, userID, groupID)
+		text, err := bot.QingyunkeText(msg, userID, groupID)
 		if err != nil || text == "" {
+			log.Errorf("qingyunke msg error:%v", err)
 			return false
 		}
 		_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{

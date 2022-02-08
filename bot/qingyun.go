@@ -1,7 +1,9 @@
-package main
+package bot
 
 import (
+	"errors"
 	"fmt"
+	"github.com/scjtqs2/bot_adapter/coolq"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"io"
@@ -16,8 +18,12 @@ import (
 var qingyunke_key = "free"
 var qingyunke_api = "http://api.qingyunke.com/api.php"
 
-func qingyunkeText(message string, user_id int64, group_id int64) (string, error) {
-	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunke_api, qingyunke_key, url.QueryEscape(message))
+func QingyunkeText(message string, user_id int64, group_id int64) (string, error) {
+	msg := coolq.CleanCQCode(message)
+	if msg == "" {
+		return "", errors.New("empty message")
+	}
+	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunke_api, qingyunke_key, url.QueryEscape(msg))
 	r, err := get(URL)
 	if err != nil {
 		log.Errorf("qingyunke post err:%v", err)
@@ -58,13 +64,13 @@ func get(getURL string) ([]byte, error) {
 
 func parseQingyunkeContext(context string) string {
 	// {face:81}
-	patten1:=`\{face:(\d+)\}`
-	r1,_:=regexp.Compile(patten1)
-	context=r1.ReplaceAllString(context,"[CQ:face,id=$1]")
+	patten1 := `\{face:(\d+)\}`
+	r1, _ := regexp.Compile(patten1)
+	context = r1.ReplaceAllString(context, "[CQ:face,id=$1]")
 	return strings.ReplaceAll(context, "{br}", "\n")
 }
 
-func qingyunkeImage(message string, user_id int64, group_id int64) (string, error) {
+func QingyunkeImage(message string, user_id int64, group_id int64) (string, error) {
 	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunke_api, qingyunke_key, url.QueryEscape(message))
 	r, err := post(URL, nil)
 	if err != nil {
