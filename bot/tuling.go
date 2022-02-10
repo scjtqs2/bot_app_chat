@@ -62,8 +62,8 @@ func TulingText(message string, userID int64, groupID int64) (string, error) {
 	postData := MSG{
 		"userInfo": MSG{
 			"apiKey":  TulingKey,
-			"userID":  userID,
-			"groupID": groupID,
+			"userId":  userID,
+			"groupId": groupID,
 		},
 		"perception": MSG{
 			"inputText": MSG{
@@ -92,8 +92,8 @@ func TulingImage(url string, userID int64, groupID int64) (string, error) {
 	postData := MSG{
 		"userInfo": MSG{
 			"apiKey":  TulingKey,
-			"userID":  userID,
-			"groupID": groupID,
+			"userId":  userID,
+			"groupId": groupID,
 		},
 		"perception": MSG{
 			"inputImage": MSG{
