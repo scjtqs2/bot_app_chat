@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/scjtqs2/bot_adapter/coolq"
-	log "github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/scjtqs2/bot_adapter/coolq"
+	log "github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
 )
 
 // 图灵收费机器人 API

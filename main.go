@@ -1,14 +1,16 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+
 	"github.com/kataras/iris/v12"
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/sha256"
-	"github.com/scjtqs2/bot_app_chat/bot"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
-	"os"
-	"os/signal"
+
+	"github.com/scjtqs2/bot_app_chat/bot"
 )
 
 func main() {
@@ -46,7 +48,6 @@ func setup() {
 		}
 	}()
 }
-
 
 func msginput(ctx iris.Context) {
 	raw, _ := ctx.GetBody()

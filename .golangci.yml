@@ -12,8 +12,8 @@ linters-settings:
 
   forbidigo:
     # Forbid the following identifiers
-    forbid:
-      - ^fmt\.Errorf$ # consider errors.Errorf in github.com/pkg/errors
+    forbid: []
+#      - ^fmt\.Errorf$ # consider errors.Errorf in github.com/pkg/errors
 
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.

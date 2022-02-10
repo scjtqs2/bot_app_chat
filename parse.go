@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/scjtqs2/bot_adapter/coolq"
 	"github.com/scjtqs2/bot_adapter/event"
 	"github.com/scjtqs2/bot_adapter/pb/entity"
-	"github.com/scjtqs2/bot_app_chat/bot"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
-	"strings"
+
+	"github.com/scjtqs2/bot_app_chat/bot"
 )
 
 func parseMsg(data string) {

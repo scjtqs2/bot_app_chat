@@ -3,15 +3,16 @@ package bot
 import (
 	"errors"
 	"fmt"
-	"github.com/scjtqs2/bot_adapter/coolq"
-	log "github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
 	"io"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/scjtqs2/bot_adapter/coolq"
+	log "github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
 )
 
 // 青云免费机器人API
