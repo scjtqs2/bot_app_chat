@@ -15,16 +15,17 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// 青云免费机器人API
-var qingyunke_key = "free"
-var qingyunke_api = "http://api.qingyunke.com/api.php"
+// qingyunkeKey 青云免费机器人API
+var qingyunkeKey = "free"
+var qingyunkeAPI = "http://api.qingyunke.com/api.php"
 
-func QingyunkeText(message string, user_id int64, group_id int64) (string, error) {
+// QingyunkeText 文字
+func QingyunkeText(message string, userID int64, groupID int64) (string, error) {
 	msg := coolq.CleanCQCode(message)
 	if msg == "" {
 		return "", errors.New("empty message")
 	}
-	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunke_api, qingyunke_key, url.QueryEscape(msg))
+	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunkeAPI, qingyunkeKey, url.QueryEscape(msg))
 	r, err := get(URL)
 	if err != nil {
 		log.Errorf("qingyunke post err:%v", err)
@@ -33,7 +34,7 @@ func QingyunkeText(message string, user_id int64, group_id int64) (string, error
 	result := gjson.ParseBytes(r)
 	if result.Get("result").Int() != 0 {
 		log.Errorf("青云机器人返回异常,resp:%s", result.String())
-		return "", fmt.Errorf("青云机器人返回异常,resp:%s", result.String())
+		return "", errors.New("青云机器人返回异常,resp:" + result.String())
 	}
 	return parseQingyunkeContext(result.Get("content").String()), nil
 }
@@ -71,8 +72,9 @@ func parseQingyunkeContext(context string) string {
 	return strings.ReplaceAll(context, "{br}", "\n")
 }
 
-func QingyunkeImage(message string, user_id int64, group_id int64) (string, error) {
-	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunke_api, qingyunke_key, url.QueryEscape(message))
+// QingyunkeImage 图片
+func QingyunkeImage(message string, userID int64, groupID int64) (string, error) {
+	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunkeAPI, qingyunkeKey, url.QueryEscape(message))
 	r, err := post(URL, nil)
 	if err != nil {
 		return "", err
@@ -80,7 +82,7 @@ func QingyunkeImage(message string, user_id int64, group_id int64) (string, erro
 	result := gjson.ParseBytes(r)
 	if result.Get("result").Int() != 0 {
 		log.Errorf("青云机器人返回异常,resp:%s", result.String())
-		return "", fmt.Errorf("青云机器人返回异常,resp:%s", result.String())
+		return "", errors.New("青云机器人返回异常,resp:" + result.String())
 	}
 	return result.Get("content").String(), nil
 }

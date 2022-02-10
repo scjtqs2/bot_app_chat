@@ -1,10 +1,10 @@
+// Package bot 机器人
 package bot
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -15,9 +15,9 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// 图灵收费机器人 API
+// TulingKey 图灵收费机器人 API
 var TulingKey string
-var tulingApi = "http://openapi.tuling123.com/openapi/api/v2"
+var tulingAPI = "http://openapi.tuling123.com/openapi/api/v2"
 
 func init() {
 	TulingKey = os.Getenv("TULING_KEY")
@@ -54,7 +54,7 @@ func post(postURL string, data MSG) ([]byte, error) {
 }
 
 // TulingText 字符串匹配
-func TulingText(message string, user_id int64, group_id int64) (string, error) {
+func TulingText(message string, userID int64, groupID int64) (string, error) {
 	msg := coolq.CleanCQCode(message)
 	if msg == "" {
 		return "", errors.New("empty message")
@@ -62,8 +62,8 @@ func TulingText(message string, user_id int64, group_id int64) (string, error) {
 	postData := MSG{
 		"userInfo": MSG{
 			"apiKey":  TulingKey,
-			"userId":  user_id,
-			"groupId": group_id,
+			"userID":  userID,
+			"groupID": groupID,
 		},
 		"perception": MSG{
 			"inputText": MSG{
@@ -71,14 +71,14 @@ func TulingText(message string, user_id int64, group_id int64) (string, error) {
 			},
 		},
 	}
-	r, err := post(tulingApi, postData)
+	r, err := post(tulingAPI, postData)
 	if err != nil {
 		return "", err
 	}
 	result := gjson.ParseBytes(r)
 	if inTulingErrcode(result.Get("intent.code").Int()) {
 		log.Errorf("图灵机器人返回异常,resp: %s", result.String())
-		return "", fmt.Errorf("图灵机器人返回异常,resp: %s", result.String())
+		return "", errors.New("图灵机器人返回异常,resp:" + result.String())
 	}
 	str := ""
 	for _, v := range result.Get("results").Array() {
@@ -88,12 +88,12 @@ func TulingText(message string, user_id int64, group_id int64) (string, error) {
 }
 
 // TulingImage 图片
-func TulingImage(url string, user_id int64, group_id int64) (string, error) {
+func TulingImage(url string, userID int64, groupID int64) (string, error) {
 	postData := MSG{
 		"userInfo": MSG{
 			"apiKey":  TulingKey,
-			"userId":  user_id,
-			"groupId": group_id,
+			"userID":  userID,
+			"groupID": groupID,
 		},
 		"perception": MSG{
 			"inputImage": MSG{
@@ -101,14 +101,14 @@ func TulingImage(url string, user_id int64, group_id int64) (string, error) {
 			},
 		},
 	}
-	r, err := post(tulingApi, postData)
+	r, err := post(tulingAPI, postData)
 	if err != nil {
 		return "", err
 	}
 	result := gjson.ParseBytes(r)
 	if inTulingErrcode(result.Get("intent.code").Int()) {
 		log.Errorf("图灵机器人返回异常,resp: %s", result.String())
-		return "", fmt.Errorf("图灵机器人返回异常,resp: %s", result.String())
+		return "", errors.New("图灵机器人返回异常,resp:" + result.String())
 	}
 	str := ""
 	for _, v := range result.Get("results").Array() {

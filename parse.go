@@ -28,8 +28,9 @@ func parseMsg(data string) {
 				ok = tuling(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			if !ok {
-				qingyunke(req.RawMessage, req.UserID, 0, false, req.SelfID)
+				ok = qingyunke(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
+			log.Debug(ok)
 		case event.MESSAGE_TYPE_GROUP:
 			var req event.MessageGroup
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
@@ -38,8 +39,9 @@ func parseMsg(data string) {
 				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if !ok {
-				qingyunke(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
+				ok = qingyunke(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
+			log.Debug(ok)
 		}
 	case "notice": // 通知事件
 		switch msg.Get("notice_type").String() {
@@ -101,7 +103,7 @@ func parseMsg(data string) {
 }
 
 // tuling 图灵机器人聊天
-func tuling(message string, userID int64, groupID int64, isGroup bool, bootId int64) bool {
+func tuling(message string, userID int64, groupID int64, isGroup bool, bootID int64) bool {
 	if !isGroup {
 		// 私聊
 		text, err := bot.TulingText(message, userID, groupID)
@@ -120,8 +122,8 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 	if strings.HasPrefix(message, "#") {
 		msg = strings.Replace(message, "#", "", 1)
 	}
-	if ok, _ := coolq.IsAtMe(message, bootId); ok {
-		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootId)), "")
+	if ok, _ := coolq.IsAtMe(message, bootID); ok {
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootID)), "")
 	}
 	if msg != "" {
 		text, err := bot.TulingText(msg, userID, groupID)
@@ -139,7 +141,7 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 }
 
 // qingyunke 青云客机器人聊天
-func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId int64) bool {
+func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootID int64) bool {
 	if !isGroup {
 		// 私聊
 		text, err := bot.QingyunkeText(message, userID, groupID)
@@ -158,8 +160,8 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId
 	if strings.HasPrefix(message, "#") {
 		msg = strings.Replace(message, "#", "", 1)
 	}
-	if ok, _ := coolq.IsAtMe(message, bootId); ok {
-		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootId)), "")
+	if ok, _ := coolq.IsAtMe(message, bootID); ok {
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootID)), "")
 	}
 	if msg != "" {
 		text, err := bot.QingyunkeText(msg, userID, groupID)
