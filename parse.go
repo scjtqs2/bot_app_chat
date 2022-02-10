@@ -107,7 +107,7 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 			log.Errorf("tuling msg error:%v", err)
 			return false
 		}
-		_, _ = bot_adapter_client.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
+		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
 			UserId:  userID,
 			Message: []byte(text),
 		})
@@ -119,7 +119,7 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 		msg = strings.Replace(message, "#", "", 1)
 	}
 	if ok, _ := coolq.IsAtMe(message, bootId); ok {
-		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "")
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootId)), "")
 	}
 	if msg != "" {
 		text, err := bot.TulingText(msg, userID, groupID)
@@ -127,7 +127,7 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootId in
 			log.Errorf("tuling msg error:%v", err)
 			return false
 		}
-		_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
+		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
 			GroupId: groupID,
 			Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
 		})
@@ -145,7 +145,7 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId
 			log.Errorf("qingyunke msg error:%v", err)
 			return false
 		}
-		_, _ = bot_adapter_client.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
+		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
 			UserId:  userID,
 			Message: []byte(text),
 		})
@@ -157,7 +157,7 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId
 		msg = strings.Replace(message, "#", "", 1)
 	}
 	if ok, _ := coolq.IsAtMe(message, bootId); ok {
-		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%s", bootId)), "")
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootId)), "")
 	}
 	if msg != "" {
 		text, err := bot.QingyunkeText(msg, userID, groupID)
@@ -165,7 +165,7 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootId
 			log.Errorf("qingyunke msg error:%v", err)
 			return false
 		}
-		_, _ = bot_adapter_client.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
+		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
 			GroupId: groupID,
 			Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
 		})

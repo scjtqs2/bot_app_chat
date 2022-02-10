@@ -20,16 +20,16 @@ func main() {
 }
 
 var (
-	app_id             = os.Getenv("APP_ID")
-	app_secret         = os.Getenv("APP_SECRET")
-	app_encrypt_key    = os.Getenv("APP_ENCRYPT_KEY")
-	bot_adapter_addr   = os.Getenv("ADAPTER_ADDR")
-	bot_adapter_client *client.AdapterService
+	appID            = os.Getenv("APP_ID")
+	appSecret        = os.Getenv("APP_SECRET")
+	appEncryptKey    = os.Getenv("APP_ENCRYPT_KEY")
+	botAdapterAddr   = os.Getenv("ADAPTER_ADDR")
+	botAdapterClient *client.AdapterService
 )
 
 func setup() {
 	var err error
-	bot_adapter_client, err = client.NewAdapterServiceClient(bot_adapter_addr, app_id, app_secret)
+	botAdapterClient, err = client.NewAdapterServiceClient(botAdapterAddr, appID, appSecret)
 	if err != nil {
 		log.Fatalf("faild to init grpc client err:%v", err)
 	}
@@ -52,7 +52,7 @@ func msginput(ctx iris.Context) {
 	raw, _ := ctx.GetBody()
 	enc := gjson.ParseBytes(raw).Get("encrypt").String()
 	// 解密推送数据
-	msg, err := sha256.Decrypt(enc, app_encrypt_key)
+	msg, err := sha256.Decrypt(enc, appEncryptKey)
 	if err != nil {
 		log.Errorf("解密失败：enc:%s err:%s", enc, err.Error())
 	}
