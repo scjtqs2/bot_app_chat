@@ -29,7 +29,7 @@ var tulingErrcode = []int64{4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007, 4100
 func post(postURL string, data MSG) ([]byte, error) {
 	var res *http.Response
 	body, _ := json.Marshal(data)
-	client := http.Client{Timeout: time.Second * 2}
+	client := http.Client{Timeout: time.Second * 8}
 	header := make(http.Header)
 	header.Set("Content-Type", "application/json")
 	req, err := http.NewRequest("POST", postURL, bytes.NewReader(body))
