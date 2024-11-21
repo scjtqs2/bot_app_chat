@@ -24,7 +24,8 @@ func parseMsg(data string) {
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
-			if bot.TulingKey != "" {
+			ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			if !ok {
@@ -35,7 +36,8 @@ func parseMsg(data string) {
 			var req event.MessageGroup
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
-			if bot.TulingKey != "" {
+			ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if !ok {
@@ -167,6 +169,44 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootID
 		text, err := bot.QingyunkeText(msg, userID, groupID)
 		if err != nil || text == "" {
 			log.Errorf("qingyunke msg error:%v", err)
+			return false
+		}
+		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
+			GroupId: groupID,
+			Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
+		})
+		return true
+	}
+	return false
+}
+
+// chatgpt chatgpt聊天
+func chatgpt(message string, userID int64, groupID int64, isGroup bool, bootID int64) bool {
+	if !isGroup {
+		// 私聊
+		text, err := bot.ChatGptText(message, userID, groupID)
+		if err != nil || text == "" {
+			log.Errorf("chatgpt msg error:%v", err)
+			return false
+		}
+		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
+			UserId:  userID,
+			Message: []byte(text),
+		})
+		return true
+	}
+	var msg string
+
+	if strings.HasPrefix(message, "#") {
+		msg = strings.Replace(message, "#", "", 1)
+	}
+	if ok, _ := coolq.IsAtMe(message, bootID); ok {
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootID)), "")
+	}
+	if msg != "" {
+		text, err := bot.ChatGptText(msg, userID, groupID)
+		if err != nil || text == "" {
+			log.Errorf("chatgpt msg error:%v", err)
 			return false
 		}
 		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
