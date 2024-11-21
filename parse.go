@@ -184,7 +184,7 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootID
 func chatgpt(message string, userID int64, groupID int64, isGroup bool, bootID int64) bool {
 	if !isGroup {
 		// 私聊
-		text, err := bot.ChatGptText(message, userID, groupID)
+		text, err := bot.ChatGptText(message, userID, groupID, botAdapterClient)
 		if err != nil || text == "" {
 			log.Errorf("chatgpt msg error:%v", err)
 			return false
@@ -204,7 +204,7 @@ func chatgpt(message string, userID int64, groupID int64, isGroup bool, bootID i
 		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootID)), "")
 	}
 	if msg != "" {
-		text, err := bot.ChatGptText(msg, userID, groupID)
+		text, err := bot.ChatGptText(msg, userID, groupID, botAdapterClient)
 		if err != nil || text == "" {
 			log.Errorf("chatgpt msg error:%v", err)
 			return false

@@ -2,8 +2,12 @@ package bot
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/coolq"
+	"github.com/scjtqs2/bot_adapter/pb/entity"
 	"os"
 	"strings"
 
@@ -28,7 +32,7 @@ func init() {
 }
 
 // ChatGptText 处理文字
-func ChatGptText(message string, userID int64, groupID int64) (string, error) {
+func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (string, error) {
 	client := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
 		option.WithBaseURL(openaiEndpoint),
@@ -39,7 +43,21 @@ func ChatGptText(message string, userID int64, groupID int64) (string, error) {
 	for _, msg := range msgs {
 		switch msg.Type {
 		case coolq.IMAGE:
-			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(msg.Data["file"])))
+			f := msg.Data["file"]
+			if strings.HasPrefix(f, "http") {
+				r := Request{URL: f, Limit: maxImageSize}
+				b, _ := r.Bytes()
+				f = fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
+			} else if strings.HasPrefix(f, "file") {
+				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
+				if err != nil {
+					return "", err
+				}
+				r := Request{URL: img.File, Limit: maxImageSize}
+				b, _ := r.Bytes()
+				f = fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
+			}
+			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(f)))
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
 		}
