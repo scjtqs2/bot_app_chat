@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"errors"
+	"github.com/scjtqs2/bot_adapter/coolq"
 	"os"
 	"strings"
 
@@ -33,11 +34,22 @@ func ChatGptText(message string, userID int64, groupID int64) (string, error) {
 		option.WithBaseURL(openaiEndpoint),
 		option.WithAPIKey(apiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
 	)
+	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
+	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
+	for _, msg := range msgs {
+		switch msg.Type {
+		case coolq.IMAGE:
+			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(msg.Data["file"])))
+		case coolq.TEXT:
+			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
+		}
+	}
+	if len(aiMessages) == 0 {
+		return "", errors.New("empty")
+	}
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
-		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.UserMessage(message),
-		}),
-		Model: openai.F(openai.ChatModelGPT4o),
+		Messages: openai.F(aiMessages),
+		Model:    openai.F(openai.ChatModelGPT4o),
 	})
 	if err != nil {
 		return "", err
