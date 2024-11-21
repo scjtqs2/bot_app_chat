@@ -58,7 +58,7 @@ func msginput(ctx iris.Context) {
 		log.Errorf("解密失败：enc:%s err:%s", enc, err.Error())
 	}
 	go parseMsg(msg)
-	_, _ = ctx.JSON(bot.MSG{
+	_ = ctx.JSON(bot.MSG{
 		"code": 200,
 		"msg":  "received",
 	})
