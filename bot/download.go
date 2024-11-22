@@ -3,6 +3,7 @@ package bot
 import (
 	"bufio"
 	"compress/gzip"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/tidwall/gjson"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -24,7 +26,9 @@ var hclient = &http.Client{
 		MaxConnsPerHost:     0,
 		MaxIdleConns:        0,
 		MaxIdleConnsPerHost: 999,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: false},
 	},
+	Timeout: time.Second * 60,
 }
 
 // ErrOverSize 响应主体过大时返回此错误
