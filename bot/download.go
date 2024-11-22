@@ -16,6 +16,11 @@ import (
 	"time"
 )
 
+func init() {
+	// 修正 go1.22之后的 remote error: tls: handshake failure 问题
+	os.Setenv("GODEBUG", "tlsrsakex=1")
+}
+
 const (
 	maxImageSize = 1024 * 1024 * 30 // 30MB
 )
