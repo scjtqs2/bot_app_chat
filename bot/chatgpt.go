@@ -8,6 +8,7 @@ import (
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/coolq"
 	"github.com/scjtqs2/bot_adapter/pb/entity"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 
@@ -33,7 +34,7 @@ func init() {
 
 // ChatGptText 处理文字
 func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (string, error) {
-	client := openai.NewClient(
+	newClient := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
 		option.WithBaseURL(openaiEndpoint),
 		option.WithAPIKey(apiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
@@ -41,12 +42,17 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
 	for _, msg := range msgs {
+		var err error
 		switch msg.Type {
 		case coolq.IMAGE:
 			f := msg.Data["file"]
 			if strings.HasPrefix(f, "http") {
+				var b []byte
 				r := Request{URL: f, Limit: maxImageSize}
-				b, _ := r.Bytes()
+				b, err = r.Bytes()
+				if err != nil {
+					log.Errorf("r.Bytes() faild err=%v", err)
+				}
 				f = fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
 			} else if strings.HasPrefix(f, "file") {
 				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
@@ -54,9 +60,13 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 					return "", err
 				}
 				r := Request{URL: img.File, Limit: maxImageSize}
-				b, _ := r.Bytes()
+				b, err := r.Bytes()
+				if err != nil {
+					log.Errorf("r.Bytes() faild err=%v", err)
+				}
 				f = fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
 			}
+			log.Info("chatgpt image  url=%s img=%s err=%v", msg.Data["file"], f, err)
 			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(f)))
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
@@ -65,7 +75,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	if len(aiMessages) == 0 {
 		return "", errors.New("empty")
 	}
-	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
+	chatCompletion, err := newClient.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F(aiMessages),
 		Model:    openai.F(openai.ChatModelGPT4o),
 	})
