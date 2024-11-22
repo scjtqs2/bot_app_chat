@@ -66,7 +66,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 				}
 				f = fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
 			}
-			log.Info("chatgpt image  url=%s img=%s err=%v", msg.Data["file"], f, err)
+			// log.Info("chatgpt image  url=%s img=%s err=%v", msg.Data["file"], f, err)
 			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(f)))
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
