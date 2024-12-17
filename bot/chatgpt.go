@@ -5,12 +5,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/coolq"
 	"github.com/scjtqs2/bot_adapter/pb/entity"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"strings"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -18,17 +19,22 @@ import (
 
 // chatgpt的配置
 var (
-	openaiEndpoint = "https://wulfs-den.ink/proxy/openai/v1/"
-	apiKey         = "8d32ffe8-7ead-4a2c-a0a4-38fca06d5449"
+	// OpenaiEndpoint = "https://wulfs-den.ink/proxy/openai/v1/"
+	OpenaiEndpoint = "https://api.openai.com/v1/"
+	OpenaiApiKey   = ""
+	OpenaiModel    = openai.ChatModelGPT4oMini
 )
 
 // init 初始化变量
 func init() {
 	if os.Getenv("OPENAI_ENDPOINT") != "" {
-		openaiEndpoint = os.Getenv("OPENAI_ENDPOINT")
+		OpenaiEndpoint = os.Getenv("OPENAI_ENDPOINT")
 	}
 	if os.Getenv("OPENAI_API_KEY") != "" {
-		apiKey = os.Getenv("OPENAI_API_KEY")
+		OpenaiApiKey = os.Getenv("OPENAI_API_KEY")
+	}
+	if os.Getenv("OPENAI_MODEL") != "" {
+		OpenaiModel = os.Getenv("OPENAI_MODEL")
 	}
 }
 
@@ -36,8 +42,8 @@ func init() {
 func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (string, error) {
 	newClient := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
-		option.WithBaseURL(openaiEndpoint),
-		option.WithAPIKey(apiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
+		option.WithBaseURL(OpenaiEndpoint),
+		option.WithAPIKey(OpenaiApiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
 	)
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
@@ -77,7 +83,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	}
 	chatCompletion, err := newClient.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F(aiMessages),
-		Model:    openai.F(openai.ChatModelGPT4o),
+		Model:    openai.F(OpenaiModel),
 	})
 	if err != nil {
 		return "", err

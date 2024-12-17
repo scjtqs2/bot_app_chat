@@ -24,7 +24,9 @@ func parseMsg(data string) {
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
-			ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
+				ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			}
 			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
@@ -36,7 +38,9 @@ func parseMsg(data string) {
 			var req event.MessageGroup
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
-			ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
+				ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			}
 			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
