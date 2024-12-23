@@ -39,7 +39,7 @@ func parseMsg(data string) {
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
 			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
-				ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
+				ok = chatgpt(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
