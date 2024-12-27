@@ -67,9 +67,11 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	)
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
+	oldMsgLen := 0
 	if groupID != 0 {
 		oldMsgs := Msglog.GetMsgs(groupID, userID)
 		if oldMsgs != nil {
+			oldMsgLen = len(oldMsgs)
 			for _, s := range oldMsgs {
 				if s.IsSystem {
 					aiMessages = append(aiMessages, openai.SystemMessage(s.Msg))
@@ -116,13 +118,13 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 			Msglog.AddMsg(groupID, userID, msg.Data["text"], false)
 		}
 	}
-	if len(aiMessages) == 0 {
+	if len(aiMessages) == oldMsgLen {
 		return "", errors.New("empty")
 	}
 	chatCompletion, err := newClient.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
-		Messages:  openai.F(aiMessages),
-		Model:     openai.F(OpenaiModel),
-		MaxTokens: openai.Int(1000),
+		Messages: openai.F(aiMessages),
+		Model:    openai.F(OpenaiModel),
+		// MaxTokens: openai.Int(1000),
 	})
 	if err != nil {
 		return "", err
@@ -144,8 +146,9 @@ func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool) {
 	var msgsArr []MsgObj
 	json.Unmarshal(msgs, &msgsArr)
 	msgsArr = append(msgsArr, MsgObj{IsSystem: isSystem, Msg: text})
-	if len(msgsArr) > m.lenth {
-		msgsArr = msgsArr[:m.lenth]
+	l := len(msgsArr)
+	if l > m.lenth {
+		msgsArr = msgsArr[l-m.lenth:]
 	}
 	buf, _ := json.Marshal(msgsArr)
 	m.db.Put([]byte(key), buf, nil)
