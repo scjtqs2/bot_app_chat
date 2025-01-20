@@ -20,7 +20,7 @@ func parseMsg(data string) {
 	switch msg.Get("post_type").String() {
 	case "message": // 消息事件
 		switch msg.Get("message_type").String() {
-		case event.MESSAGE_TYPE_PRIVATE:
+		case event.MessageTypePrivate:
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
@@ -34,10 +34,11 @@ func parseMsg(data string) {
 				ok = qingyunke(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			log.Debug(ok)
-		case event.MESSAGE_TYPE_GROUP:
+		case event.MessageTypeGroup:
 			var req event.MessageGroup
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
+			log.Debugf("raw:%+v ,req=%+v \n", msg.Raw, req)
 			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
 				ok = chatgpt(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}

@@ -146,8 +146,8 @@ github.com/sanity-io/litter v1.5.5 h1:iE+sBxPBzoK6uaEP5Lt3fHNgpKcHXc/A2HGETy0uJQ
 github.com/sanity-io/litter v1.5.5/go.mod h1:9gzJgR2i4ZpjZHsKvUXIRQVk7P+yM3e+jAF7bU2UI5U=
 github.com/schollz/closestmatch v2.1.0+incompatible h1:Uel2GXEpJqOWBrlyI+oY9LTiyyjYS17cCYRqP13/SHk=
 github.com/schollz/closestmatch v2.1.0+incompatible/go.mod h1:RtP1ddjLong6gTkbtmuhtR2uUrrJOpYzYRvbcPAid+g=
-github.com/scjtqs2/bot_adapter v0.0.0-20220208075349-b19a4fe218e8 h1:GAD6vH6PjA8N6DJsvB1o8fRg0peJ7KBs4HCJZKcfHnU=
-github.com/scjtqs2/bot_adapter v0.0.0-20220208075349-b19a4fe218e8/go.mod h1:wLZFAaoBmG32bdSs5FJyzTO9uyjyGtthtcxp3tVGO/k=
+github.com/scjtqs2/bot_adapter v0.0.0-20250120081035-9e399828e805 h1:qTfSl9Y95cBSBaFySwyhHf4ZTI9yadCj5bxkND9kddQ=
+github.com/scjtqs2/bot_adapter v0.0.0-20250120081035-9e399828e805/go.mod h1:wLZFAaoBmG32bdSs5FJyzTO9uyjyGtthtcxp3tVGO/k=
 github.com/sergi/go-diff v1.2.0 h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=
 github.com/sergi/go-diff v1.2.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=

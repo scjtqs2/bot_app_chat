@@ -1,13 +1,11 @@
 module github.com/scjtqs2/bot_app_chat
 
-go 1.22.1
-
-toolchain go1.23.3
+go 1.23
 
 require (
 	github.com/kataras/iris/v12 v12.2.11
 	github.com/openai/openai-go v0.1.0-alpha.38
-	github.com/scjtqs2/bot_adapter v0.0.0-20220208075349-b19a4fe218e8
+	github.com/scjtqs2/bot_adapter v0.0.0-20250120081035-9e399828e805
 	github.com/sirupsen/logrus v1.9.3
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tidwall/gjson v1.14.4
