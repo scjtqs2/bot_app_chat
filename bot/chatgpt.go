@@ -68,19 +68,19 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
 	oldMsgLen := 0
-	if groupID != 0 {
-		oldMsgs := Msglog.GetMsgs(groupID, userID)
-		if oldMsgs != nil {
-			oldMsgLen = len(oldMsgs)
-			for _, s := range oldMsgs {
-				if s.IsSystem {
-					aiMessages = append(aiMessages, openai.SystemMessage(s.Msg))
-				} else {
-					aiMessages = append(aiMessages, openai.UserMessage(s.Msg))
-				}
+	// if groupID != 0 {
+	oldMsgs := Msglog.GetMsgs(groupID, userID)
+	if oldMsgs != nil {
+		oldMsgLen = len(oldMsgs)
+		for _, s := range oldMsgs {
+			if s.IsSystem {
+				aiMessages = append(aiMessages, openai.SystemMessage(s.Msg))
+			} else {
+				aiMessages = append(aiMessages, openai.UserMessage(s.Msg))
 			}
 		}
 	}
+	// }
 	defer func() {
 		if err == nil {
 			Msglog.AddMsg(groupID, userID, rsp, true)
