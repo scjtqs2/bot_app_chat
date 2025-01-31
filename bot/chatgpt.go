@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/coolq"
@@ -121,11 +122,17 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	if len(aiMessages) == oldMsgLen {
 		return "", errors.New("empty")
 	}
-	chatCompletion, err := newClient.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
+	// 配置超时时间
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer cancel()
+	chatCompletion, err := newClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F(aiMessages),
 		Model:    openai.F(OpenaiModel),
 		// MaxTokens: openai.Int(1000),
-	})
+	},
+		// This sets the per-retry timeout
+		option.WithRequestTimeout(5*time.Minute),
+	)
 	if err != nil {
 		return "", err
 	}
