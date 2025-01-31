@@ -123,15 +123,15 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		return "", errors.New("empty")
 	}
 	// 配置超时时间
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 	defer cancel()
 	chatCompletion, err := newClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F(aiMessages),
 		Model:    openai.F(OpenaiModel),
 		// MaxTokens: openai.Int(1000),
 	},
-		// This sets the per-retry timeout
-		option.WithRequestTimeout(5*time.Minute),
+	// This sets the per-retry timeout
+	// option.WithRequestTimeout(5*time.Minute),
 	)
 	if err != nil {
 		return "", err
