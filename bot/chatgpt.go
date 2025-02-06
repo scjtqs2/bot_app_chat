@@ -137,7 +137,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		return "", err
 	}
 	if strings.HasPrefix(chatCompletion.ID, "error") {
-		return "", errors.New(chatCompletion.Choices[0].Message.Content)
+		return "", errors.New(chatCompletion.JSON.RawJSON())
 	}
 	return chatCompletion.Choices[0].Message.Content, nil
 }
