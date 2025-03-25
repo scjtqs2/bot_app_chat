@@ -68,6 +68,8 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	)
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
+	prompt := "你是一个智能助手，你只能用中文回答所有问题。"
+	aiMessages = append(aiMessages, openai.SystemMessage(prompt))
 	oldMsgLen := 0
 	// if groupID != 0 {
 	oldMsgs := Msglog.GetMsgs(groupID, userID)
