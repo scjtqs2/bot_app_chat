@@ -150,7 +150,6 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 		Model:    openai.F(LmStudioModel),
 		// MaxTokens: openai.Int(1000),
 	},
-		// option.WithRequestTimeout(5*time.Minute),
 	)
 	if err != nil {
 		return "", err
