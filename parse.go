@@ -24,14 +24,14 @@ func parseMsg(data string) {
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
-			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" {
-				ok = lmStudioChat(req.RawMessage, req.UserID, 0, false, req.SelfID)
-			}
-			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" && !ok {
+			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
 				ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			if bot.GeminiEndpoint != "" && bot.GeminiApiKey != "" && !ok {
 				ok = geminiText(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			}
+			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" && !ok {
+				ok = lmStudioChat(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.UserID, 0, false, req.SelfID)
@@ -45,14 +45,14 @@ func parseMsg(data string) {
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
 			log.Debugf("raw:%+v ,req=%+v \n", msg.Raw, req)
-			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" {
-				ok = lmStudioChat(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
-			}
-			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" && ok {
+			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
 				ok = chatgpt(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if bot.GeminiEndpoint != "" && bot.GeminiApiKey != "" && !ok {
 				ok = geminiText(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
+			}
+			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" && !ok {
+				ok = lmStudioChat(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
