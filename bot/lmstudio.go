@@ -110,7 +110,7 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 		return "", errors.New("empty")
 	}
 	// 配置超时时间
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	chatCompletion, err := newClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F(aiMessages),
