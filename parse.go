@@ -45,6 +45,9 @@ func parseMsg(data string) {
 			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
 				ok = chatgpt(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
+			if bot.GeminiEndpoint != "" && bot.GeminiApiKey != "" && !ok {
+				ok = geminiText(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
+			}
 			if bot.TulingKey != "" && !ok {
 				ok = tuling(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
