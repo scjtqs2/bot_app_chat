@@ -3,12 +3,10 @@ package bot
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/scjtqs2/bot_adapter/client"
@@ -18,7 +16,6 @@ import (
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 // chatgpt的配置
@@ -27,14 +24,7 @@ var (
 	OpenaiEndpoint = "https://api.openai.com/v1/"
 	OpenaiApiKey   = ""
 	OpenaiModel    = openai.ChatModelGPT4oMini
-	Msglog         *MsgLog
 )
-
-type MsgLog struct {
-	db    *leveldb.DB
-	lock  sync.Mutex
-	lenth int
-}
 
 type MsgObj struct {
 	IsSystem bool   `json:"is_system"`
@@ -52,15 +42,13 @@ func init() {
 	if os.Getenv("OPENAI_MODEL") != "" {
 		OpenaiModel = os.Getenv("OPENAI_MODEL")
 	}
-	db, err := leveldb.OpenFile("/data/msgdb", nil)
-	if err != nil {
-		panic(err)
-	}
-	Msglog = &MsgLog{db: db, lenth: 30}
 }
 
 // ChatGptText 处理文字
 func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (rsp string, err error) {
+	if OpenaiApiKey == "" {
+		return "", errors.New("empyt openai api key")
+	}
 	newClient := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
 		option.WithBaseURL(OpenaiEndpoint),
@@ -132,8 +120,8 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		Model:    openai.F(OpenaiModel),
 		// MaxTokens: openai.Int(1000),
 	},
-	// This sets the per-retry timeout
-	// option.WithRequestTimeout(5*time.Minute),
+		// This sets the per-retry timeout
+		// option.WithRequestTimeout(5*time.Minute),
 	)
 	if err != nil {
 		return "", err
@@ -142,40 +130,4 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		return "", errors.New(chatCompletion.JSON.RawJSON())
 	}
 	return chatCompletion.Choices[0].Message.Content, nil
-}
-
-func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	key := m.MakeKey(groupid, userid)
-	msgs, _ := m.db.Get([]byte(key), nil)
-	if msgs == nil {
-		msgs = []byte("{}")
-	}
-	var msgsArr []MsgObj
-	json.Unmarshal(msgs, &msgsArr)
-	msgsArr = append(msgsArr, MsgObj{IsSystem: isSystem, Msg: text})
-	l := len(msgsArr)
-	if l > m.lenth {
-		msgsArr = msgsArr[l-m.lenth:]
-	}
-	buf, _ := json.Marshal(msgsArr)
-	m.db.Put([]byte(key), buf, nil)
-}
-
-func (m *MsgLog) MakeKey(groupid, userid int64) string {
-	return fmt.Sprintf("@chatgpt/group/%d/user/%d", groupid, userid)
-}
-
-func (m *MsgLog) GetMsgs(groupid, userid int64) []MsgObj {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	key := m.MakeKey(groupid, userid)
-	msgs, _ := m.db.Get([]byte(key), nil)
-	if msgs == nil {
-		return nil
-	}
-	var msgsArr []MsgObj
-	json.Unmarshal(msgs, &msgsArr)
-	return msgsArr
 }
