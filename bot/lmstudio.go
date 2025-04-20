@@ -5,54 +5,51 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
-	"time"
-
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/coolq"
 	"github.com/scjtqs2/bot_adapter/pb/entity"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
+	"os"
+	"strings"
+	"time"
 )
 
-// chatgpt的配置
+/**
+ * @author scjtqs
+ * @email scjtqs@qq.com
+ */
+
+// gemini的配置
 var (
-	// OpenaiEndpoint = "https://wulfs-den.ink/proxy/openai/v1/"
-	OpenaiEndpoint = "https://api.openai.com/v1/"
-	OpenaiApiKey   = ""
-	OpenaiModel    = openai.ChatModelGPT4oMini
+	LmStudioEndpoint = ""
+	LmStudioApiKey   = ""
+	LmStudioModel    = ""
 )
-
-type MsgObj struct {
-	IsSystem bool   `json:"is_system"`
-	Msg      string `json:"msg"`
-}
 
 // init 初始化变量
 func init() {
-	if os.Getenv("OPENAI_ENDPOINT") != "" {
-		OpenaiEndpoint = os.Getenv("OPENAI_ENDPOINT")
+	if os.Getenv("LMSTUDIO_ENDPOINT") != "" {
+		LmStudioEndpoint = os.Getenv("LMSTUDIO_ENDPOINT")
 	}
-	if os.Getenv("OPENAI_API_KEY") != "" {
-		OpenaiApiKey = os.Getenv("OPENAI_API_KEY")
+	if os.Getenv("LMSTUDIO_API_KEY") != "" {
+		LmStudioApiKey = os.Getenv("LMSTUDIO_API_KEY")
 	}
-	if os.Getenv("OPENAI_MODEL") != "" {
-		OpenaiModel = os.Getenv("OPENAI_MODEL")
+	if os.Getenv("LMSTUDIO_MODEL") != "" {
+		LmStudioModel = os.Getenv("LMSTUDIO_MODEL")
 	}
 }
 
-// ChatGptText 处理文字
-func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (rsp string, err error) {
-	if OpenaiApiKey == "" {
-		return "", errors.New("empyt openai api key")
+// LmStudioText 处理文字
+func LmStudioText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (rsp string, err error) {
+	if LmStudioEndpoint == "" || LmStudioModel == "" {
+		return "", errors.New("empyt lmstudio api")
 	}
 	newClient := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
-		option.WithBaseURL(OpenaiEndpoint),
-		option.WithAPIKey(OpenaiApiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
+		option.WithBaseURL(LmStudioEndpoint),
+		option.WithAPIKey(LmStudioApiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
 	)
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
@@ -117,10 +114,10 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	defer cancel()
 	chatCompletion, err := newClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F(aiMessages),
-		Model:    openai.F(OpenaiModel),
+		Model:    openai.F(LmStudioModel),
 		// MaxTokens: openai.Int(1000),
 	},
-	// option.WithRequestTimeout(5*time.Minute),
+		// option.WithRequestTimeout(5*time.Minute),
 	)
 	if err != nil {
 		return "", err

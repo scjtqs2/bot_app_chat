@@ -24,7 +24,10 @@ func parseMsg(data string) {
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
-			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
+			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" {
+				ok = lmStudioChat(req.RawMessage, req.UserID, 0, false, req.SelfID)
+			}
+			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" && !ok {
 				ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			if bot.GeminiEndpoint != "" && bot.GeminiApiKey != "" && !ok {
@@ -42,7 +45,10 @@ func parseMsg(data string) {
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
 			log.Debugf("raw:%+v ,req=%+v \n", msg.Raw, req)
-			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
+			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" {
+				ok = lmStudioChat(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
+			}
+			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" && ok {
 				ok = chatgpt(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if bot.GeminiEndpoint != "" && bot.GeminiApiKey != "" && !ok {
@@ -235,7 +241,7 @@ func geminiText(message string, userID int64, groupID int64, isGroup bool, bootI
 		// 私聊
 		text, err := bot.GeminiText(message, userID, groupID, botAdapterClient)
 		if err != nil || text == "" {
-			log.Errorf("chatgpt msg error:%v", err)
+			log.Errorf("gemini msg error:%v", err)
 			return false
 		}
 		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -254,6 +260,44 @@ func geminiText(message string, userID int64, groupID int64, isGroup bool, bootI
 	}
 	if msg != "" {
 		text, err := bot.GeminiText(msg, userID, groupID, botAdapterClient)
+		if err != nil || text == "" {
+			log.Errorf("gemini msg error:%v", err)
+			return false
+		}
+		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
+			GroupId: groupID,
+			Message: []byte(fmt.Sprintf("%s%s", coolq.EnAtCode(fmt.Sprintf("%d", userID)), text)),
+		})
+		return true
+	}
+	return false
+}
+
+// lmstudio chatgpt聊天
+func lmStudioChat(message string, userID int64, groupID int64, isGroup bool, bootID int64) bool {
+	if !isGroup {
+		// 私聊
+		text, err := bot.LmStudioText(message, userID, groupID, botAdapterClient)
+		if err != nil || text == "" {
+			log.Errorf("chatgpt msg error:%v", err)
+			return false
+		}
+		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
+			UserId:  userID,
+			Message: []byte(text),
+		})
+		return true
+	}
+	var msg string
+
+	if strings.HasPrefix(message, "#") {
+		msg = strings.Replace(message, "#", "", 1)
+	}
+	if ok, _ := coolq.IsAtMe(message, bootID); ok {
+		msg = strings.ReplaceAll(message, coolq.EnAtCode(fmt.Sprintf("%d", bootID)), "")
+	}
+	if msg != "" {
+		text, err := bot.LmStudioText(msg, userID, groupID, botAdapterClient)
 		if err != nil || text == "" {
 			log.Errorf("chatgpt msg error:%v", err)
 			return false
