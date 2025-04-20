@@ -18,6 +18,17 @@ type MsgLog struct {
 	lenth int
 }
 
+const (
+	MsgTypeText  = "" // 默认为空，兼容之前的
+	MsgTypeImage = "image"
+)
+
+type MsgObj struct {
+	IsSystem bool   `json:"is_system"`
+	Msg      string `json:"msg"`
+	msgType  string `json:"msg_type"` // 消息类型
+}
+
 func init() {
 	db, err := leveldb.OpenFile("/data/msgdb", nil)
 	if err != nil {
@@ -26,7 +37,7 @@ func init() {
 	Msglog = &MsgLog{db: db, lenth: 30}
 }
 
-func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool) {
+func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool, msgType string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	key := m.MakeKey(groupid, userid)
@@ -36,7 +47,7 @@ func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool) {
 	}
 	var msgsArr []MsgObj
 	json.Unmarshal(msgs, &msgsArr)
-	msgsArr = append(msgsArr, MsgObj{IsSystem: isSystem, Msg: text})
+	msgsArr = append(msgsArr, MsgObj{IsSystem: isSystem, Msg: text, msgType: msgType})
 	l := len(msgsArr)
 	if l > m.lenth {
 		msgsArr = msgsArr[l-m.lenth:]

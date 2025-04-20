@@ -26,11 +26,6 @@ var (
 	OpenaiModel    = openai.ChatModelGPT4oMini
 )
 
-type MsgObj struct {
-	IsSystem bool   `json:"is_system"`
-	Msg      string `json:"msg"`
-}
-
 // init 初始化变量
 func init() {
 	if os.Getenv("OPENAI_ENDPOINT") != "" {
@@ -64,17 +59,33 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	if oldMsgs != nil {
 		oldMsgLen = len(oldMsgs)
 		for _, s := range oldMsgs {
-			if s.IsSystem {
-				aiMessages = append(aiMessages, openai.SystemMessage(s.Msg))
-			} else {
-				aiMessages = append(aiMessages, openai.UserMessage(s.Msg))
+			switch s.msgType {
+			case MsgTypeText:
+				if s.IsSystem {
+					aiMessages = append(aiMessages, openai.SystemMessage(s.Msg))
+				} else {
+					aiMessages = append(aiMessages, openai.UserMessage(s.Msg))
+				}
+			case MsgTypeImage:
+				if s.IsSystem {
+					// 暂时不支持
+				} else {
+					aiMessages = append(aiMessages, openai.UserMessageParts(openai.ChatCompletionContentPartImageParam{
+						Type: openai.F(openai.ChatCompletionContentPartImageTypeImageURL),
+						ImageURL: openai.F(openai.ChatCompletionContentPartImageImageURLParam{
+							URL:    openai.F(s.Msg),
+							Detail: openai.F(openai.ChatCompletionContentPartImageImageURLDetailHigh),
+						}),
+					}))
+				}
 			}
+
 		}
 	}
 	// }
 	defer func() {
 		if err == nil {
-			Msglog.AddMsg(groupID, userID, rsp, true)
+			Msglog.AddMsg(groupID, userID, rsp, true, MsgTypeText)
 		}
 	}()
 	for _, msg := range msgs {
@@ -122,9 +133,10 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 					Detail: openai.F(openai.ChatCompletionContentPartImageImageURLDetailHigh),
 				}),
 			}))
+			Msglog.AddMsg(groupID, userID, f, false, MsgTypeImage)
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
-			Msglog.AddMsg(groupID, userID, msg.Data["text"], false)
+			Msglog.AddMsg(groupID, userID, msg.Data["text"], false, MsgTypeText)
 		}
 	}
 	if len(aiMessages) == oldMsgLen {
