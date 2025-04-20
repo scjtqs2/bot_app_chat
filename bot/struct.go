@@ -26,7 +26,8 @@ const (
 type MsgObj struct {
 	IsSystem bool   `json:"is_system"`
 	Msg      string `json:"msg"`
-	msgType  string `json:"msg_type"` // 消息类型
+	msgType  string `json:"msg_type"`  // 消息类型
+	mimeType string `json:"mime_type"` // 图片类型
 }
 
 func init() {
@@ -37,7 +38,7 @@ func init() {
 	Msglog = &MsgLog{db: db, lenth: 30}
 }
 
-func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool, msgType string) {
+func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool, msgType string, mimeType string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	key := m.MakeKey(groupid, userid)
@@ -47,7 +48,7 @@ func (m *MsgLog) AddMsg(groupid, userid int64, text string, isSystem bool, msgTy
 	}
 	var msgsArr []MsgObj
 	json.Unmarshal(msgs, &msgsArr)
-	msgsArr = append(msgsArr, MsgObj{IsSystem: isSystem, Msg: text, msgType: msgType})
+	msgsArr = append(msgsArr, MsgObj{IsSystem: isSystem, Msg: text, msgType: msgType, mimeType: mimeType})
 	l := len(msgsArr)
 	if l > m.lenth {
 		msgsArr = msgsArr[l-m.lenth:]

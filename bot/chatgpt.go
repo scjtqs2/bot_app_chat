@@ -85,7 +85,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	// }
 	defer func() {
 		if err == nil {
-			Msglog.AddMsg(groupID, userID, rsp, true, MsgTypeText)
+			Msglog.AddMsg(groupID, userID, rsp, true, MsgTypeText, "")
 		}
 	}()
 	for _, msg := range msgs {
@@ -102,8 +102,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 				if err != nil {
 					log.Errorf("r.Bytes() faild err=%v", err)
 				}
-				if err != nil || !strings.Contains(contentType, "png") {
-					log.Warnf("无法识别图片 MIME 类型，默认使用 image/jpeg: err=%v", err)
+				if strings.Contains(contentType, "png") {
 					mimeType = "image/png"
 				}
 				f = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
@@ -118,8 +117,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 				if err != nil {
 					log.Errorf("r.Bytes() faild err=%v", err)
 				}
-				if err != nil || !strings.Contains(contentType, "png") {
-					log.Warnf("无法识别图片 MIME 类型，默认使用 image/jpeg: err=%v", err)
+				if strings.Contains(contentType, "png") {
 					mimeType = "image/png"
 				}
 				f = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
@@ -133,10 +131,10 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 					Detail: openai.F(openai.ChatCompletionContentPartImageImageURLDetailHigh),
 				}),
 			}))
-			Msglog.AddMsg(groupID, userID, f, false, MsgTypeImage)
+			Msglog.AddMsg(groupID, userID, f, false, MsgTypeImage, mimeType)
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
-			Msglog.AddMsg(groupID, userID, msg.Data["text"], false, MsgTypeText)
+			Msglog.AddMsg(groupID, userID, msg.Data["text"], false, MsgTypeText, "")
 		}
 	}
 	if len(aiMessages) == oldMsgLen {

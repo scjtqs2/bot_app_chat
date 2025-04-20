@@ -72,27 +72,47 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 	if oldMsgs != nil {
 		oldMsgLen = len(oldMsgs)
 		for _, s := range oldMsgs {
-			if s.IsSystem {
-				cs.History = append(cs.History, &genai.Content{
-					Parts: []genai.Part{
-						genai.Text(s.Msg),
-					},
-					Role: "model",
-				})
-			} else {
-				cs.History = append(cs.History, &genai.Content{
-					Parts: []genai.Part{
-						genai.Text(s.Msg),
-					},
-					Role: "user",
-				})
+			switch s.msgType {
+			case MsgTypeText:
+				if s.IsSystem {
+					cs.History = append(cs.History, &genai.Content{
+						Parts: []genai.Part{
+							genai.Text(s.Msg),
+						},
+						Role: "model",
+					})
+				} else {
+					cs.History = append(cs.History, &genai.Content{
+						Parts: []genai.Part{
+							genai.Text(s.Msg),
+						},
+						Role: "user",
+					})
+				}
+			case MsgTypeImage:
+				if s.IsSystem {
+					cs.History = append(cs.History, &genai.Content{
+						Parts: []genai.Part{
+							genai.ImageData(s.mimeType, []byte(s.Msg)),
+						},
+						Role: "model",
+					})
+				} else {
+					cs.History = append(cs.History, &genai.Content{
+						Parts: []genai.Part{
+							genai.ImageData(s.mimeType, []byte(s.Msg)),
+						},
+						Role: "user",
+					})
+				}
 			}
+
 		}
 	}
 	// }
 	defer func() {
 		if err == nil {
-			Msglog.AddMsg(groupID, userID, rsp, true)
+			Msglog.AddMsg(groupID, userID, rsp, true, MsgTypeText, "")
 		}
 	}()
 	for _, msg := range msgs {
@@ -101,11 +121,16 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 		case coolq.IMAGE:
 			f := msg.Data["file"]
 			var imgData []byte
+			contentType := ""
+			mimeType := "jpeg"
 			if strings.HasPrefix(f, "http") {
 				r := Request{URL: f, Limit: maxImageSize}
-				imgData, err = r.Bytes()
+				imgData, contentType, err = r.Bytes()
 				if err != nil {
 					log.Errorf("r.Bytes() faild err=%v", err)
+				}
+				if strings.Contains(contentType, "png") {
+					mimeType = "png"
 				}
 			} else if strings.HasPrefix(f, "file") {
 				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
@@ -113,15 +138,19 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 					return "", err
 				}
 				r := Request{URL: img.File, Limit: maxImageSize}
-				imgData, err = r.Bytes()
+				imgData, contentType, err = r.Bytes()
 				if err != nil {
 					log.Errorf("r.Bytes() faild err=%v", err)
 				}
+				if strings.Contains(contentType, "png") {
+					mimeType = "png"
+				}
 			}
-			aiMessages = append(aiMessages, genai.ImageData("jpeg", imgData))
+			aiMessages = append(aiMessages, genai.ImageData(mimeType, imgData))
+			Msglog.AddMsg(groupID, userID, string(imgData), false, MsgTypeImage, mimeType)
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, genai.Text(msg.Data["text"]))
-			Msglog.AddMsg(groupID, userID, msg.Data["text"], false)
+			Msglog.AddMsg(groupID, userID, msg.Data["text"], false, MsgTypeText, "")
 		}
 	}
 	if len(aiMessages) == oldMsgLen {
