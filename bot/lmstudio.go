@@ -79,28 +79,46 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 		switch msg.Type {
 		case coolq.IMAGE:
 			f := msg.Data["file"]
+			contentType := ""
+			mimeType := "image/jpeg"
 			if strings.HasPrefix(f, "http") {
 				var b []byte
 				r := Request{URL: f, Limit: maxImageSize}
-				b, err = r.Bytes()
+				b, contentType, err = r.Bytes()
 				if err != nil {
 					log.Errorf("r.Bytes() faild err=%v", err)
 				}
-				f = fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
+				if err != nil || !strings.Contains(contentType, "png") {
+					log.Warnf("无法识别图片 MIME 类型，默认使用 image/jpeg: err=%v", err)
+					mimeType = "image/png"
+				}
+				f = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
 			} else if strings.HasPrefix(f, "file") {
 				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
 				if err != nil {
 					return "", err
 				}
+				var b []byte
 				r := Request{URL: img.File, Limit: maxImageSize}
-				b, err := r.Bytes()
+				b, contentType, err = r.Bytes()
 				if err != nil {
 					log.Errorf("r.Bytes() faild err=%v", err)
 				}
-				f = fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
+				if err != nil || !strings.Contains(contentType, "png") {
+					log.Warnf("无法识别图片 MIME 类型，默认使用 image/jpeg: err=%v", err)
+					mimeType = "image/png"
+				}
+				f = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
 			}
 			// log.Info("chatgpt image  url=%s img=%s err=%v", msg.Data["file"], f, err)
-			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(f)))
+			// aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(f)))
+			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ChatCompletionContentPartImageParam{
+				Type: openai.F(openai.ChatCompletionContentPartImageTypeImageURL),
+				ImageURL: openai.F(openai.ChatCompletionContentPartImageImageURLParam{
+					URL:    openai.F(f),
+					Detail: openai.F(openai.ChatCompletionContentPartImageImageURLDetailHigh),
+				}),
+			}))
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
 			Msglog.AddMsg(groupID, userID, msg.Data["text"], false)

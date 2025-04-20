@@ -64,49 +64,53 @@ func (r Request) do() (*http.Response, error) {
 	return hclient.Do(req)
 }
 
-func (r Request) body() (io.ReadCloser, error) {
+func (r Request) body() (io.ReadCloser, string, error) {
 	resp, err := r.do()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	limit := r.Limit // check file size limit
 	if limit > 0 && resp.ContentLength > limit {
 		_ = resp.Body.Close()
-		return nil, ErrOverSize
+		return nil, "", ErrOverSize
 	}
 
+	contentType := resp.Header.Get("Content-Type")
+
 	if strings.Contains(resp.Header.Get("Content-Encoding"), "gzip") {
-		return gzipReadCloser(resp.Body)
+		return gzipReadCloser(resp.Body, contentType)
 	}
-	return resp.Body, err
+
+	return resp.Body, contentType, err
 }
 
 // Bytes 对给定URL发送Get请求，返回响应主体
-func (r Request) Bytes() ([]byte, error) {
-	rd, err := r.body()
+func (r Request) Bytes() ([]byte, string, error) {
+	rd, contentType, err := r.body()
 	if err != nil {
-		return nil, err
+		return nil, contentType, err
 	}
 	defer rd.Close()
-	return io.ReadAll(rd)
+	b, err := io.ReadAll(rd)
+	return b, contentType, err
 }
 
 // JSON 发送GET请求， 并转换响应为JSON
-func (r Request) JSON() (gjson.Result, error) {
-	rd, err := r.body()
+func (r Request) JSON() (gjson.Result, string, error) {
+	rd, contentType, err := r.body()
 	if err != nil {
-		return gjson.Result{}, err
+		return gjson.Result{}, contentType, err
 	}
 	defer rd.Close()
 
 	var sb strings.Builder
 	_, err = io.Copy(&sb, rd)
 	if err != nil {
-		return gjson.Result{}, err
+		return gjson.Result{}, contentType, err
 	}
 
-	return gjson.Parse(sb.String()), nil
+	return gjson.Parse(sb.String()), contentType, nil
 }
 
 func writeToFile(reader io.ReadCloser, path string) error {
@@ -120,7 +124,7 @@ func writeToFile(reader io.ReadCloser, path string) error {
 
 // WriteToFile 下载到制定目录
 func (r Request) WriteToFile(path string) error {
-	rd, err := r.body()
+	rd, _, err := r.body()
 	if err != nil {
 		return err
 	}
@@ -280,15 +284,15 @@ type gzipCloser struct {
 }
 
 // gzipReadCloser 从 io.ReadCloser 创建 gunzip io.ReadCloser
-func gzipReadCloser(reader io.ReadCloser) (io.ReadCloser, error) {
+func gzipReadCloser(reader io.ReadCloser, contentType string) (io.ReadCloser, string, error) {
 	gzipReader, err := gzip.NewReader(reader)
 	if err != nil {
-		return nil, err
+		return nil, contentType, err
 	}
 	return &gzipCloser{
 		f: reader,
 		r: gzipReader,
-	}, nil
+	}, contentType, nil
 }
 
 // Read impls io.Reader
