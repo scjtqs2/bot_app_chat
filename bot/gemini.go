@@ -35,7 +35,7 @@ func init() {
 		GeminiApiKey = os.Getenv("GEMINI_API_KEY")
 	}
 	if os.Getenv("GEMINI_MODEL") != "" {
-		GeminiModel = os.Getenv(GeminiModel)
+		GeminiModel = os.Getenv("GEMINI_MODEL")
 	}
 }
 
