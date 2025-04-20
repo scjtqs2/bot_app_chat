@@ -279,7 +279,7 @@ func lmStudioChat(message string, userID int64, groupID int64, isGroup bool, boo
 		// 私聊
 		text, err := bot.LmStudioText(message, userID, groupID, botAdapterClient)
 		if err != nil || text == "" {
-			log.Errorf("chatgpt msg error:%v", err)
+			log.Errorf("lmstudio msg error:%v", err)
 			return false
 		}
 		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -299,7 +299,7 @@ func lmStudioChat(message string, userID int64, groupID int64, isGroup bool, boo
 	if msg != "" {
 		text, err := bot.LmStudioText(msg, userID, groupID, botAdapterClient)
 		if err != nil || text == "" {
-			log.Errorf("chatgpt msg error:%v", err)
+			log.Errorf("lmstudio msg error:%v", err)
 			return false
 		}
 		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
