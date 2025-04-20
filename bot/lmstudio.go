@@ -23,7 +23,7 @@ import (
 
 // gemini的配置
 var (
-	LmStudioEndpoint = ""
+	LmStudioEndpoint = "" // lm studio:http://192.168.1.123:1234/v1/    ollama: http://192.168.1.123:11434/v1/
 	LmStudioApiKey   = ""
 	LmStudioModel    = ""
 )
