@@ -120,7 +120,6 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		Model:    openai.F(OpenaiModel),
 		// MaxTokens: openai.Int(1000),
 	},
-		// This sets the per-retry timeout
 		// option.WithRequestTimeout(5*time.Minute),
 	)
 	if err != nil {

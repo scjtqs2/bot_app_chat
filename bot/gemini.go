@@ -21,7 +21,7 @@ import (
 
 // gemini的配置
 var (
-	GeminiEndpoint = "https://generativelanguage.googleapis.com/"
+	GeminiEndpoint = "https://generativelanguage.googleapis.com"
 	GeminiApiKey   = ""
 	GeminiModel    = "gemini-2.0-flash"
 )
