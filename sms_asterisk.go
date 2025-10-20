@@ -24,7 +24,6 @@ import (
 
 // SMSState 存储用户发送短信的会话状态
 type SMSState struct {
-	// ================== 1. 修改结构体 ==================
 	Device      string `json:"device"`
 	PhoneNumber string `json:"phone_number"`
 	Message     string `json:"message"`
@@ -169,19 +168,32 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 				return true // 消息已处理（已拒绝）
 			}
 
-			// ================== 2. 修改 /send 解析逻辑 ==================
-			// 3.2 解析命令 (格式: /send <device> <phone_number>)
-			parts := strings.Split(message, " ")
-			if len(parts) != 3 || parts[1] == "" || parts[2] == "" {
-				sendReply(userID, "请按照以下格式发送命令：/send <device> <phone_number>")
+			// ================== 修改开始：解析 /send 命令 ==================
+			// 3.2 解析命令 (格式: /send [device] <phone_number>)
+			// 使用 Fields 自动处理多个空格
+			parts := strings.Fields(message)
+
+			var device string
+			var phoneNumber string
+
+			if len(parts) == 2 {
+				// 格式: /send <phone_number>
+				device = "quectel0" // <-- 使用默认设备
+				phoneNumber = parts[1]
+			} else if len(parts) == 3 {
+				// 格式: /send <device> <phone_number>
+				device = parts[1] // <-- 使用指定设备
+				phoneNumber = parts[2]
+			} else {
+				// 格式错误
+				sendReply(userID, "格式错误。\n请使用：/send <phone_number>\n或：/send <device> <phone_number>")
 				return true // 消息已处理
 			}
+			// ================== 修改结束 ==================
 
 			// 3.3 进入下一步：等待消息内容
-			device := parts[1]
-			phoneNumber := parts[2]
 			userSmsState[userID] = &SMSState{
-				Device:      device, // 存储 device
+				Device:      device, // 存储 device (无论是默认的还是指定的)
 				PhoneNumber: phoneNumber,
 				Step:        StateAwaitingMessage,
 			}
@@ -196,10 +208,10 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 	// 5. 用户处于会话中，根据步骤处理
 	switch state.Step {
 	case StateAwaitingMessage:
-		// ================== 3. 修改确认信息 ==================
 		// 5.1 接收到消息内容，进入确认步骤
 		state.Message = message
 		state.Step = StateAwaitingConfirmation
+		// (此处的确认信息会自动显示正确的 device)
 		replyText := fmt.Sprintf("请确认信息：\n设备：%s\n手机号：%s\n信息：%s\n\n(回复 'yes' 确认发送，回复 /cancel 取消)", state.Device, state.PhoneNumber, state.Message)
 		sendReply(userID, replyText)
 		return true // 消息已处理
@@ -211,9 +223,8 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 			// 确认发送
 			log.Infof("用户 %d 确认发送短信到 %s (设备: %s)", userID, state.PhoneNumber, state.Device)
 
-			// ================== 4. 修改 API 调用 ==================
-			// 调用 HTTP API 发送短信
-			result, err := sendSmsViaAPI(state.Device, state.PhoneNumber, state.Message) // 传入 state.Device
+			// (此处 API 调用会自动使用正确的 device)
+			result, err := sendSmsViaAPI(state.Device, state.PhoneNumber, state.Message)
 			var replyText string
 			if err != nil {
 				replyText = fmt.Sprintf("发送失败：\n%s", err.Error())
@@ -240,10 +251,6 @@ func sendSmsViaAPI(device, recipient, message string) (string, error) {
 	if smsApiUrl == "" {
 		return "", fmt.Errorf("SMS_API_URL 未配置")
 	}
-
-	// ================== 5. 移除硬编码 ==================
-	// (移除了 if device == "" { device = "quectel0" } )
-	// device 现在完全由调用方 (即用户的 /send 命令) 决定
 
 	// 1. 构建请求体
 	reqPayload := SMSSendRequest{
