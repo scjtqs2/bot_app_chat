@@ -23,6 +23,12 @@ func parseMsg(data string) {
 		case event.MessageTypePrivate:
 			var req event.MessagePrivate
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
+			// 首先检查消息是否属于短信发送流程
+			if handlePrivateSmsConversation(req) {
+				return // 消息已被短信流程处理，直接返回
+			}
+
+			// 如果未被短信流程处理，则继续执行 AI 聊天逻辑
 			ok := false
 			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
 				ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
