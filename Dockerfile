@@ -11,7 +11,7 @@ COPY ./ .
 RUN set -ex \
     && BUILD=`date +%FT%T%z` \
     && COMMIT_SHA1=`git rev-parse HEAD` \
-    && go build -ldflags "-s -w -X main.Version=${COMMIT_SHA1}|${BUILD}" -v -o bot_app
+    && go build -ldflags "-s -w -extldflags '-static' -X main.Version=${COMMIT_SHA1}|${BUILD}" -o bot_app
 
 
 FROM alpine AS production
