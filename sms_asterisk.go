@@ -273,6 +273,7 @@ func sendSmsViaAPI(device, recipient, message string) (string, error) {
 		return "", fmt.Errorf("创建 HTTP 请求失败: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Auth-Secret", smsApiSecret) // 带上secret的授权
 
 	// 3. 发送请求
 	log.Infof("SMS API: 正在发送请求到 %s (Device: %s)", smsApiUrl, device)
