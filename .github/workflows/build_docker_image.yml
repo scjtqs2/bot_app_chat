@@ -16,67 +16,34 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      packages: write
       contents: read
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set time zone
-        uses: szenius/set-timezone@v1.0
+        uses: szenius/set-timezone@v2.0
         with:
           timezoneLinux: "Asia/Shanghai"
           timezoneMacos: "Asia/Shanghai"
           timezoneWindows: "China Standard Time"
 
-      # # 如果有 dockerhub 账户，可以在github的secrets中配置下面两个，然后取消下面注释的这几行，并在meta步骤的images增加一行 ${{ github.repository }}
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to GHCR
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v3
-        with:
-          images: |
-            ghcr.io/${{ github.repository }}
-          # generate Docker tags based on the following events/attributes
-          #   nightly, master, pr-2, 1.2.3, 1.2, 1
-          tags: |
-            type=schedule,pattern=nightly
-            type=edge
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: buildx
-        run: |
-          docker buildx create --use --name mybuilder
-          docker buildx build --tag scjtqs/bot_app:chat --platform linux/amd64,linux/arm64,linux/arm/v7 --push  .
-          docker buildx rm mybuilder
+        uses: docker/setup-buildx-action@v3
 
       - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: scjtqs/bot_app:chat
