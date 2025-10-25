@@ -147,8 +147,8 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 	userID := req.UserID
 	message := strings.TrimSpace(req.RawMessage)
 
-	// 1. 检查 /cancel 命令
-	if message == "/cancel" {
+	// 1. 检查 #cancel 命令
+	if message == "#cancel" {
 		if _, ok := userSmsState[userID]; ok {
 			delete(userSmsState, userID)
 			sendReply(userID, "操作已取消。")
@@ -160,16 +160,16 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 	state, inState := userSmsState[userID]
 
 	if !inState {
-		// 3. 用户不在会话中，检查是否为 /send 启动命令
-		if strings.HasPrefix(message, "/send ") {
+		// 3. 用户不在会话中，检查是否为 #send 启动命令
+		if strings.HasPrefix(message, "#send ") {
 			// 3.1 检查权限
 			if _, allowed := allowedSmsUserIDs[userID]; !allowed {
 				sendReply(userID, "您没有权限使用这个 bot。")
 				return true // 消息已处理（已拒绝）
 			}
 
-			// ================== 修改开始：解析 /send 命令 ==================
-			// 3.2 解析命令 (格式: /send [device] <phone_number>)
+			// ================== 修改开始：解析 #send 命令 ==================
+			// 3.2 解析命令 (格式: #send [device] <phone_number>)
 			// 使用 Fields 自动处理多个空格
 			parts := strings.Fields(message)
 
@@ -177,16 +177,16 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 			var phoneNumber string
 
 			if len(parts) == 2 {
-				// 格式: /send <phone_number>
+				// 格式: #send <phone_number>
 				device = "quectel0" // <-- 使用默认设备
 				phoneNumber = parts[1]
 			} else if len(parts) == 3 {
-				// 格式: /send <device> <phone_number>
+				// 格式: #send <device> <phone_number>
 				device = parts[1] // <-- 使用指定设备
 				phoneNumber = parts[2]
 			} else {
 				// 格式错误
-				sendReply(userID, "格式错误。\n请使用：/send <phone_number>\n或：/send <device> <phone_number>")
+				sendReply(userID, "格式错误。\n请使用：#send <phone_number>\n或：#send <device> <phone_number>")
 				return true // 消息已处理
 			}
 			// ================== 修改结束 ==================
@@ -212,7 +212,7 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 		state.Message = message
 		state.Step = StateAwaitingConfirmation
 		// (此处的确认信息会自动显示正确的 device)
-		replyText := fmt.Sprintf("请确认信息：\n设备：%s\n手机号：%s\n信息：%s\n\n(回复 'yes' 确认发送，回复 /cancel 取消)", state.Device, state.PhoneNumber, state.Message)
+		replyText := fmt.Sprintf("请确认信息：\n设备：%s\n手机号：%s\n信息：%s\n\n(回复 'yes' 确认发送，回复 #cancel 取消)", state.Device, state.PhoneNumber, state.Message)
 		sendReply(userID, replyText)
 		return true // 消息已处理
 
