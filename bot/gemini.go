@@ -2,8 +2,12 @@ package bot
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -12,7 +16,6 @@ import (
 	"github.com/scjtqs2/bot_adapter/pb/entity"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/genai"
-	"os"
 )
 
 /**
@@ -22,9 +25,11 @@ import (
 
 // gemini的配置
 var (
-	GeminiEndpoint = "https://generativelanguage.googleapis.com"
-	GeminiAPIKey   = ""
-	GeminiModel    = "gemini-1.5-flash"
+	GeminiEndpoint      = "https://generativelanguage.googleapis.com"
+	GeminiAPIKey        = ""
+	GeminiModel         = "gemini-1.5-flash"
+	GeminiProxy         = "" // 代理地址，例如 http://127.0.0.1:7890
+	GeminiInsecureSkipVerify = false // 是否跳过TLS证书验证
 )
 
 // init 初始化变量
@@ -38,6 +43,12 @@ func init() {
 	if os.Getenv("GEMINI_MODEL") != "" {
 		GeminiModel = os.Getenv("GEMINI_MODEL")
 	}
+	if os.Getenv("GEMINI_PROXY") != "" {
+		GeminiProxy = os.Getenv("GEMINI_PROXY")
+	}
+	if os.Getenv("GEMINI_INSECURE_SKIP_VERIFY") != "" {
+		GeminiInsecureSkipVerify = os.Getenv("GEMINI_INSECURE_SKIP_VERIFY") == "true" || os.Getenv("GEMINI_INSECURE_SKIP_VERIFY") == "1"
+	}
 }
 
 // GeminiText 处理文字
@@ -49,11 +60,37 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 	defer cancel()
 
-	// 创建新的 genai 客户端
-	newClient, err := genai.NewClient(ctx, &genai.ClientConfig{
+	// 构建客户端配置
+	clientConfig := &genai.ClientConfig{
 		APIKey:  GeminiAPIKey,
 		Backend: genai.BackendGeminiAPI,
-	})
+	}
+
+	// 如果配置了代理或跳过TLS验证，创建自定义HTTP客户端
+	if GeminiProxy != "" || GeminiInsecureSkipVerify {
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: GeminiInsecureSkipVerify,
+				},
+			},
+		}
+
+		// 设置代理
+		if GeminiProxy != "" {
+			proxyURL, err := url.Parse(GeminiProxy)
+			if err == nil {
+				httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+			} else {
+				log.Errorf("Invalid proxy URL: %v", err)
+			}
+		}
+
+		clientConfig.HTTPClient = httpClient
+	}
+
+	// 创建新的 genai 客户端
+	newClient, err := genai.NewClient(ctx, clientConfig)
 	if err != nil {
 		log.Error(err)
 		return "", err

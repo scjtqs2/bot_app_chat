@@ -24,7 +24,8 @@ var (
 	OpenaiEndpoint        = "https://api.openai.com/v1/"
 	OpenaiAPIKey          = ""
 	OpenaiModel           = openai.ChatModelGPT4oMini
-	OpenaiReasoningEffort = "low" // 推理努力级别：low|medium|high（适用于o1等推理模型）
+	OpenaiReasoningEffort = ""    // 推理努力级别：low|medium|high（适用于o1等推理模型）
+	OpenaiImageUseBase64  = false // 图片是否使用base64方式而非URL方式
 )
 
 // init 初始化变量
@@ -40,6 +41,9 @@ func init() {
 	}
 	if os.Getenv("OPENAI_REASONING_EFFORT") != "" {
 		OpenaiReasoningEffort = os.Getenv("OPENAI_REASONING_EFFORT")
+	}
+	if os.Getenv("OPENAI_IMAGE_USE_BASE64") != "" {
+		OpenaiImageUseBase64 = os.Getenv("OPENAI_IMAGE_USE_BASE64") == "true" || os.Getenv("OPENAI_IMAGE_USE_BASE64") == "1"
 	}
 }
 
@@ -73,6 +77,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 				}
 			case MsgTypeImage:
 				if !s.IsSystem {
+					// 历史消息中的图片尝试两种方式都支持
 					parts := []openai.ChatCompletionContentPartUnionParam{
 						{
 							OfImageURL: &openai.ChatCompletionContentPartImageParam{
@@ -101,18 +106,24 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 			f := msg.Data["file"]
 			contentType := ""
 			mimeType := "image/jpeg"
-			if strings.HasPrefix(f, "http") {
-				var b []byte
-				r := Request{URL: f, Limit: maxImageSize}
-				b, contentType, err = r.Bytes()
-				if err != nil {
-					log.Errorf("r.Bytes() faild err=%v", err)
+			var imageURL string
+			switch {
+			case strings.HasPrefix(f, "http"):
+				if OpenaiImageUseBase64 {
+					var b []byte
+					r := Request{URL: f, Limit: maxImageSize}
+					b, contentType, err = r.Bytes()
+					if err != nil {
+						log.Errorf("r.Bytes() faild err=%v", err)
+					}
+					if strings.Contains(contentType, "png") {
+						mimeType = "image/png"
+					}
+					imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
+				} else {
+					imageURL = f
 				}
-				if strings.Contains(contentType, "png") {
-					mimeType = "image/png"
-				}
-				f = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
-			} else if strings.HasPrefix(f, "file") {
+			case strings.HasPrefix(f, "file"):
 				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
 				if err != nil {
 					return "", err
@@ -126,20 +137,22 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 				if strings.Contains(contentType, "png") {
 					mimeType = "image/png"
 				}
-				f = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
+				imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
+			default:
+				imageURL = f
 			}
 			parts := []openai.ChatCompletionContentPartUnionParam{
 				{
 					OfImageURL: &openai.ChatCompletionContentPartImageParam{
 						ImageURL: openai.ChatCompletionContentPartImageImageURLParam{
-							URL:    f,
+							URL:    imageURL,
 							Detail: "high",
 						},
 					},
 				},
 			}
 			aiMessages = append(aiMessages, openai.UserMessage(parts))
-			Msglog.AddMsg(groupID, userID, f, false, MsgTypeImage, mimeType)
+			Msglog.AddMsg(groupID, userID, imageURL, false, MsgTypeImage, mimeType)
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
 			Msglog.AddMsg(groupID, userID, msg.Data["text"], false, MsgTypeText, "")
