@@ -105,6 +105,9 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		switch msg.Type {
 		case coolq.IMAGE:
 			f := msg.Data["file"]
+			if !strings.HasPrefix(f, "http") && !strings.HasPrefix(f, "file") && strings.HasPrefix(f, "base64://") {
+				f = msg.Data["url"]
+			}
 			contentType := ""
 			mimeType := "image/jpeg"
 			var imageURL string
@@ -143,7 +146,6 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 				}
 				imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
 			case strings.HasPrefix(f, "base64://"):
-				// 修复点：新增 base64 前缀的直接拦截
 				b64Str := strings.TrimPrefix(f, "base64://")
 				imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, b64Str)
 			default:
