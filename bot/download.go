@@ -19,7 +19,7 @@ import (
 
 func init() {
 	// 修正 go1.22之后的 remote error: tls: handshake failure 问题
-	os.Setenv("GODEBUG", "tlsrsakex=1")
+	os.Setenv("GODEBUG", "tlsrsakex=1") //nolint:errcheck
 }
 
 const (
@@ -91,7 +91,7 @@ func (r Request) Bytes() ([]byte, string, error) {
 	if err != nil {
 		return nil, contentType, err
 	}
-	defer rd.Close()
+	defer func() { _ = rd.Close() }()
 	b, err := io.ReadAll(rd)
 	return b, contentType, err
 }
@@ -102,7 +102,7 @@ func (r Request) JSON() (gjson.Result, string, error) {
 	if err != nil {
 		return gjson.Result{}, contentType, err
 	}
-	defer rd.Close()
+	defer func() { _ = rd.Close() }()
 
 	var sb strings.Builder
 	_, err = io.Copy(&sb, rd)
@@ -128,7 +128,7 @@ func (r Request) WriteToFile(path string) error {
 	if err != nil {
 		return err
 	}
-	defer rd.Close()
+	defer func() { _ = rd.Close() }()
 	return writeToFile(rd, path)
 }
 
@@ -162,7 +162,7 @@ func (r Request) WriteToFileMultiThreading(path string, thread int) error {
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return errors.New("response status unsuccessful: " + strconv.FormatInt(int64(resp.StatusCode), 10))
 		}
@@ -209,10 +209,10 @@ func (r Request) WriteToFileMultiThreading(path string, thread int) error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		_, _ = file.Seek(block.BeginOffset, io.SeekStart)
 		writer := bufio.NewWriter(file)
-		defer writer.Flush()
+		defer func() { _ = writer.Flush() }()
 
 		header := make(map[string]string, len(r.Header))
 		for k, v := range r.Header { // copy headers
@@ -227,7 +227,7 @@ func (r Request) WriteToFileMultiThreading(path string, thread int) error {
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return errors.New("response status unsuccessful: " + strconv.FormatInt(int64(resp.StatusCode), 10))
 		}

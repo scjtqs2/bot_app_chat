@@ -20,9 +20,10 @@ FROM alpine AS production
 
 RUN  sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
-RUN apk add --no-cache tzdata \
+RUN apk add --no-cache tzdata ca-certificates \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && update-ca-certificates
 
 ENV UPDATE="1"
 ENV HTTP_PORT="8080"

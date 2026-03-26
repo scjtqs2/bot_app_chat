@@ -45,9 +45,9 @@ var (
 	allowedSmsUserIDs map[int64]bool
 
 	// SMS API 配置
-	smsApiUrl    string
-	smsApiSecret string
-	smsApiClient *http.Client
+	smsAPIURL    string
+	smsAPISecret string
+	smsAPIClient *http.Client
 
 	// isSmsFeatureEnabled 标记短信功能是否全局启用
 	isSmsFeatureEnabled bool
@@ -81,22 +81,22 @@ func init() {
 	}
 
 	// 从环境变量加载 SMS API 配置
-	smsApiUrl = os.Getenv("SMS_API_URL")
-	if smsApiUrl == "" {
+	smsAPIURL = os.Getenv("SMS_API_URL")
+	if smsAPIURL == "" {
 		// 使用你提供的 URL 作为后备
-		smsApiUrl = "http://192.168.50.124:1285/api/v1/sms/send"
-		log.Warnf("SMS_API_URL 未设置, 使用默认值: %s", smsApiUrl)
+		smsAPIURL = "http://192.168.50.124:1285/api/v1/sms/send"
+		log.Warnf("SMS_API_URL 未设置, 使用默认值: %s", smsAPIURL)
 	}
 	// 这个 Secret 必须与你的 http_handler 服务中设置的 FORWARD_SECRET 环境变量一致
-	smsApiSecret = os.Getenv("SMS_API_SECRET")
-	if smsApiSecret == "" {
+	smsAPISecret = os.Getenv("SMS_API_SECRET")
+	if smsAPISecret == "" {
 		log.Warn("SMS_API_SECRET 未设置。短信发送可能会因认证失败。")
 	}
 
-	smsApiClient = &http.Client{
+	smsAPIClient = &http.Client{
 		Timeout: 30 * time.Second, // 30秒超时
 	}
-	log.Infof("SMS API Handler 初始化, URL: %s", smsApiUrl)
+	log.Infof("SMS API Handler 初始化, URL: %s", smsAPIURL)
 
 	// 初始化 allowedSmsUserIDs map
 	allowedSmsUserIDs = make(map[int64]bool)
@@ -176,15 +176,16 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 			var device string
 			var phoneNumber string
 
-			if len(parts) == 2 {
+			switch len(parts) {
+			case 2:
 				// 格式: #send <phone_number>
 				device = "quectel0" // <-- 使用默认设备
 				phoneNumber = parts[1]
-			} else if len(parts) == 3 {
+			case 3:
 				// 格式: #send <device> <phone_number>
 				device = parts[1] // <-- 使用指定设备
 				phoneNumber = parts[2]
-			} else {
+			default:
 				// 格式错误
 				sendReply(userID, "格式错误。\n请使用：#send <phone_number>\n或：#send <device> <phone_number>")
 				return true // 消息已处理
@@ -248,13 +249,13 @@ func handlePrivateSmsConversation(req event.MessagePrivate) bool {
 
 // sendSmsViaAPI 执行 HTTP POST 请求到 SMS 服务
 func sendSmsViaAPI(device, recipient, message string) (string, error) {
-	if smsApiUrl == "" {
+	if smsAPIURL == "" {
 		return "", fmt.Errorf("SMS_API_URL 未配置")
 	}
 
 	// 1. 构建请求体
 	reqPayload := SMSSendRequest{
-		Secret:    smsApiSecret, // 从环境变量中读取
+		Secret:    smsAPISecret, // 从环境变量中读取
 		Device:    device,       // 使用传入的 device
 		Recipient: recipient,
 		Message:   message,
@@ -267,22 +268,22 @@ func sendSmsViaAPI(device, recipient, message string) (string, error) {
 	}
 
 	// 2. 创建 HTTP 请求
-	req, err := http.NewRequest("POST", smsApiUrl, bytes.NewBuffer(payloadBytes))
+	req, err := http.NewRequest("POST", smsAPIURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		log.Errorf("SMS API: 创建 HTTP 请求失败: %v", err)
 		return "", fmt.Errorf("创建 HTTP 请求失败: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Auth-Secret", smsApiSecret) // 带上secret的授权
+	req.Header.Set("X-Auth-Secret", smsAPISecret) // 带上secret的授权
 
 	// 3. 发送请求
-	log.Infof("SMS API: 正在发送请求到 %s (Device: %s)", smsApiUrl, device)
-	resp, err := smsApiClient.Do(req)
+	log.Infof("SMS API: 正在发送请求到 %s (Device: %s)", smsAPIURL, device)
+	resp, err := smsAPIClient.Do(req)
 	if err != nil {
 		log.Errorf("SMS API: 请求失败: %v", err)
 		return "", fmt.Errorf("请求 SMS API 失败: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 4. 读取响应体
 	body, err := io.ReadAll(resp.Body)

@@ -41,7 +41,7 @@ func post(postURL string, data MSG) ([]byte, error) {
 	res, err = client.Do(req)
 	if res != nil {
 		//goland:noinspection GoDeferInLoop
-		defer res.Body.Close()
+		defer func() { _ = res.Body.Close() }()
 	}
 	if err != nil {
 		return nil, err

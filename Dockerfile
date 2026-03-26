@@ -17,9 +17,10 @@ RUN set -ex \
 FROM alpine AS production
 
 
-RUN apk add --no-cache tzdata \
+RUN apk add --no-cache tzdata ca-certificates \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && update-ca-certificates
 
 ENV UPDATE="1"
 ENV HTTP_PORT="8080"

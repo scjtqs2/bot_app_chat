@@ -20,7 +20,7 @@ var qingyunkeKey = "free"
 var qingyunkeAPI = "http://api.qingyunke.com/api.php"
 
 // QingyunkeText 文字
-func QingyunkeText(message string, userID int64, groupID int64) (string, error) {
+func QingyunkeText(message string, _ int64, _ int64) (string, error) {
 	msg := coolq.CleanCQCode(message)
 	if msg == "" {
 		return "", errors.New("empty message")
@@ -52,7 +52,7 @@ func get(getURL string) ([]byte, error) {
 	res, err = client.Do(req)
 	if res != nil {
 		//goland:noinspection GoDeferInLoop
-		defer res.Body.Close()
+		defer func() { _ = res.Body.Close() }()
 	}
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func parseQingyunkeContext(context string) string {
 }
 
 // QingyunkeImage 图片
-func QingyunkeImage(message string, userID int64, groupID int64) (string, error) {
+func QingyunkeImage(message string, _ int64, _ int64) (string, error) {
 	URL := fmt.Sprintf("%s?key=%s&appid=0&msg=%s", qingyunkeAPI, qingyunkeKey, url.QueryEscape(message))
 	r, err := post(URL, nil)
 	if err != nil {

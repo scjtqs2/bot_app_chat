@@ -30,10 +30,10 @@ func parseMsg(data string) {
 
 			// 如果未被短信流程处理，则继续执行 AI 聊天逻辑
 			ok := false
-			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
+			if bot.OpenaiEndpoint != "" && bot.OpenaiAPIKey != "" {
 				ok = chatgpt(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
-			if bot.GeminiEndpoint != "" && bot.GeminiApiKey != "" && !ok {
+			if bot.GeminiEndpoint != "" && bot.GeminiAPIKey != "" && !ok {
 				ok = geminiText(req.RawMessage, req.UserID, 0, false, req.SelfID)
 			}
 			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" && !ok {
@@ -51,10 +51,10 @@ func parseMsg(data string) {
 			_ = json.Unmarshal([]byte(msg.Raw), &req)
 			ok := false
 			log.Debugf("raw:%+v ,req=%+v \n", msg.Raw, req)
-			if bot.OpenaiEndpoint != "" && bot.OpenaiApiKey != "" {
+			if bot.OpenaiEndpoint != "" && bot.OpenaiAPIKey != "" {
 				ok = chatgpt(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
-			if bot.GeminiEndpoint != "" && bot.GeminiApiKey != "" && !ok {
+			if bot.GeminiEndpoint != "" && bot.GeminiAPIKey != "" && !ok {
 				ok = geminiText(req.RawMessage, req.Sender.UserID, req.GroupID, true, req.SelfID)
 			}
 			if bot.LmStudioEndpoint != "" && bot.LmStudioModel != "" && !ok {

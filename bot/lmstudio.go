@@ -25,7 +25,7 @@ import (
 // gemini的配置
 var (
 	LmStudioEndpoint = "" // lm studio:http://192.168.1.123:1234/v1/    ollama: http://192.168.1.123:11434/v1/
-	LmStudioApiKey   = ""
+	LmStudioAPIKey   = ""
 	LmStudioModel    = ""
 )
 
@@ -35,7 +35,7 @@ func init() {
 		LmStudioEndpoint = os.Getenv("LMSTUDIO_ENDPOINT")
 	}
 	if os.Getenv("LMSTUDIO_API_KEY") != "" {
-		LmStudioApiKey = os.Getenv("LMSTUDIO_API_KEY")
+		LmStudioAPIKey = os.Getenv("LMSTUDIO_API_KEY")
 	}
 	if os.Getenv("LMSTUDIO_MODEL") != "" {
 		LmStudioModel = os.Getenv("LMSTUDIO_MODEL")
@@ -50,7 +50,7 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 	newClient := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
 		option.WithBaseURL(LmStudioEndpoint),
-		option.WithAPIKey(LmStudioApiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
+		option.WithAPIKey(LmStudioAPIKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
 	)
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
@@ -62,7 +62,7 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 	if oldMsgs != nil {
 		oldMsgLen = len(oldMsgs)
 		for _, s := range oldMsgs {
-			switch s.msgType {
+			switch s.MsgType {
 			case MsgTypeText:
 				if s.IsSystem {
 					aiMessages = append(aiMessages, openai.SystemMessage(s.Msg))
@@ -70,9 +70,7 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 					aiMessages = append(aiMessages, openai.UserMessage(s.Msg))
 				}
 			case MsgTypeImage:
-				if s.IsSystem {
-					// 暂时不支持
-				} else {
+				if !s.IsSystem {
 					parts := []openai.ChatCompletionContentPartUnionParam{
 						{
 							OfImageURL: &openai.ChatCompletionContentPartImageParam{
@@ -86,7 +84,6 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 					aiMessages = append(aiMessages, openai.UserMessage(parts))
 				}
 			}
-
 		}
 	}
 	// }

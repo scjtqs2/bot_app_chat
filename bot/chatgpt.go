@@ -22,7 +22,7 @@ import (
 var (
 	// OpenaiEndpoint = "https://wulfs-den.ink/proxy/openai/v1/"
 	OpenaiEndpoint = "https://api.openai.com/v1/"
-	OpenaiApiKey   = ""
+	OpenaiAPIKey   = ""
 	OpenaiModel    = openai.ChatModelGPT4oMini
 )
 
@@ -32,7 +32,7 @@ func init() {
 		OpenaiEndpoint = os.Getenv("OPENAI_ENDPOINT")
 	}
 	if os.Getenv("OPENAI_API_KEY") != "" {
-		OpenaiApiKey = os.Getenv("OPENAI_API_KEY")
+		OpenaiAPIKey = os.Getenv("OPENAI_API_KEY")
 	}
 	if os.Getenv("OPENAI_MODEL") != "" {
 		OpenaiModel = os.Getenv("OPENAI_MODEL")
@@ -41,13 +41,13 @@ func init() {
 
 // ChatGptText 处理文字
 func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (rsp string, err error) {
-	if OpenaiApiKey == "" {
+	if OpenaiAPIKey == "" {
 		return "", errors.New("empyt openai api key")
 	}
 	newClient := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
 		option.WithBaseURL(OpenaiEndpoint),
-		option.WithAPIKey(OpenaiApiKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
+		option.WithAPIKey(OpenaiAPIKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
 	)
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)
@@ -59,17 +59,16 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	if oldMsgs != nil {
 		oldMsgLen = len(oldMsgs)
 		for _, s := range oldMsgs {
-			switch s.msgType {
+			switch s.MsgType {
 			case MsgTypeText:
 				if s.IsSystem {
-					aiMessages = append(aiMessages, openai.SystemMessage(s.Msg))
+					// 系统消息只能在开头，历史消息中的系统消息作为assistant消息处理
+					aiMessages = append(aiMessages, openai.AssistantMessage(s.Msg))
 				} else {
 					aiMessages = append(aiMessages, openai.UserMessage(s.Msg))
 				}
 			case MsgTypeImage:
-				if s.IsSystem {
-					// 暂时不支持
-				} else {
+				if !s.IsSystem {
 					parts := []openai.ChatCompletionContentPartUnionParam{
 						{
 							OfImageURL: &openai.ChatCompletionContentPartImageParam{
@@ -83,7 +82,6 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 					aiMessages = append(aiMessages, openai.UserMessage(parts))
 				}
 			}
-
 		}
 	}
 	// }

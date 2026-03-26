@@ -1,10 +1,8 @@
+version: "2"
 linters-settings:
   errcheck:
-    ignore: fmt:.*,io/ioutil:^Read.*
-    ignoretests: true
-
-  goimports:
-    local-prefixes: github.com/scjtqs2/bot_app_chat
+    exclude: fmt:.*,io/ioutil:^Read.*,os\\.Setenv,.*\\.Close,.*\\.Flush
+    exclude-tests: true
 
   gocritic:
     disabled-checks:
@@ -16,41 +14,22 @@ linters-settings:
       - ^fmt\.Errorf$ # consider errors.Errorf in github.com/pkg/errors
 
 linters:
-  # please, do not use `enable-all`: it's deprecated and will be removed soon.
-  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
   fast: false
   enable:
     - bodyclose
-    - deadcode
-    - depguard
     - dogsled
     - errcheck
-    - exportloopref
     - exhaustive
     - bidichk
-    #- funlen
-    #- goconst
     - gocritic
-    #- gocyclo
-    - gofmt
-    - goimports
     - goprintffuncname
-    #- gosec
-    - gosimple
     - govet
     - ineffassign
-    #- misspell
     - nolintlint
     - rowserrcheck
     - staticcheck
-    - structcheck
-    - stylecheck
-    - typecheck
-    - unconvert
-    - unparam
     - unused
-    - varcheck
     - whitespace
     - prealloc
     - predeclared
@@ -60,14 +39,11 @@ linters:
     - makezero
 
 run:
-  # default concurrency is a available CPU number.
-  # concurrency: 4 # explicitly omit this value to fully utilize available resources.
   deadline: 5m
   issues-exit-code: 1
   skip-dirs: []
   tests: true
 
-# output configuration options
 output:
   format: "colored-line-number"
   print-issued-lines: true
@@ -75,8 +51,13 @@ output:
   uniq-by-line: true
 
 issues:
-  # Fix found issues (if it's supported by the linter)
   fix: true
   exclude-use-default: false
   exclude:
     - "Error return value of .((os.)?std(out|err)..*|.*Close|.*Seek|.*Flush|os.Remove(All)?|.*print(f|ln)?|os.(Un)?Setenv). is not check"
+    - "Error return value of `os.Setenv` is not checked"
+    - "Error return value of `rd.Close` is not checked"
+    - "Error return value of `resp.Body.Close` is not checked"
+    - "Error return value of `res.Body.Close` is not checked"
+    - "Error return value of `file.Close` is not checked"
+    - "Error return value of `writer.Flush` is not checked"

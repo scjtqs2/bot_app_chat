@@ -23,7 +23,7 @@ import (
 // gemini的配置
 var (
 	GeminiEndpoint = "https://generativelanguage.googleapis.com"
-	GeminiApiKey   = ""
+	GeminiAPIKey   = ""
 	GeminiModel    = "gemini-1.5-flash"
 )
 
@@ -33,7 +33,7 @@ func init() {
 		GeminiEndpoint = os.Getenv("GEMINI_ENDPOINT")
 	}
 	if os.Getenv("GEMINI_API_KEY") != "" {
-		GeminiApiKey = os.Getenv("GEMINI_API_KEY")
+		GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
 	}
 	if os.Getenv("GEMINI_MODEL") != "" {
 		GeminiModel = os.Getenv("GEMINI_MODEL")
@@ -42,7 +42,7 @@ func init() {
 
 // GeminiText 处理文字
 func GeminiText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (rsp string, err error) {
-	if GeminiApiKey == "" {
+	if GeminiAPIKey == "" {
 		return "", errors.New("empty gemini api key")
 	}
 	// 配置超时时间
@@ -51,7 +51,7 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 
 	// 创建新的 genai 客户端
 	newClient, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  GeminiApiKey,
+		APIKey:  GeminiAPIKey,
 		Backend: genai.BackendGeminiAPI,
 	})
 	if err != nil {
@@ -69,24 +69,22 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 
 	// 添加历史消息
 	oldMsgs := Msglog.GetMsgs(groupID, userID)
-	if oldMsgs != nil {
-		for _, s := range oldMsgs {
-			switch s.msgType {
-			case MsgTypeText:
-				if s.IsSystem {
-					history = append(history, genai.NewContentFromText(s.Msg, genai.RoleModel))
-				} else {
-					history = append(history, genai.NewContentFromText(s.Msg, genai.RoleUser))
-				}
-			case MsgTypeImage:
-				parts := []*genai.Part{
-					genai.NewPartFromBytes([]byte(s.Msg), s.mimeType),
-				}
-				if s.IsSystem {
-					history = append(history, genai.NewContentFromParts(parts, genai.RoleModel))
-				} else {
-					history = append(history, genai.NewContentFromParts(parts, genai.RoleUser))
-				}
+	for _, s := range oldMsgs {
+		switch s.MsgType {
+		case MsgTypeText:
+			if s.IsSystem {
+				history = append(history, genai.NewContentFromText(s.Msg, genai.RoleModel))
+			} else {
+				history = append(history, genai.NewContentFromText(s.Msg, genai.RoleUser))
+			}
+		case MsgTypeImage:
+			parts := []*genai.Part{
+				genai.NewPartFromBytes([]byte(s.Msg), s.MimeType),
+			}
+			if s.IsSystem {
+				history = append(history, genai.NewContentFromParts(parts, genai.RoleModel))
+			} else {
+				history = append(history, genai.NewContentFromParts(parts, genai.RoleUser))
 			}
 		}
 	}
