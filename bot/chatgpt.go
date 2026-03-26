@@ -105,8 +105,10 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		switch msg.Type {
 		case coolq.IMAGE:
 			f := msg.Data["file"]
-			if !strings.HasPrefix(f, "http") && !strings.HasPrefix(f, "file") && strings.HasPrefix(f, "base64://") {
-				f = msg.Data["url"]
+			if !strings.HasPrefix(f, "http") && !strings.HasPrefix(f, "file") && !strings.HasPrefix(f, "base64://") {
+				if u, ok := msg.Data["url"]; ok && u != "" {
+					f = u
+				}
 			}
 			contentType := ""
 			mimeType := "image/jpeg"
