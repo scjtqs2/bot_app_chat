@@ -21,9 +21,10 @@ import (
 // chatgpt的配置
 var (
 	// OpenaiEndpoint = "https://wulfs-den.ink/proxy/openai/v1/"
-	OpenaiEndpoint = "https://api.openai.com/v1/"
-	OpenaiAPIKey   = ""
-	OpenaiModel    = openai.ChatModelGPT4oMini
+	OpenaiEndpoint        = "https://api.openai.com/v1/"
+	OpenaiAPIKey          = ""
+	OpenaiModel           = openai.ChatModelGPT4oMini
+	OpenaiReasoningEffort = "low" // 推理努力级别：low|medium|high（适用于o1等推理模型）
 )
 
 // init 初始化变量
@@ -36,6 +37,9 @@ func init() {
 	}
 	if os.Getenv("OPENAI_MODEL") != "" {
 		OpenaiModel = os.Getenv("OPENAI_MODEL")
+	}
+	if os.Getenv("OPENAI_REASONING_EFFORT") != "" {
+		OpenaiReasoningEffort = os.Getenv("OPENAI_REASONING_EFFORT")
 	}
 }
 
@@ -147,12 +151,26 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	// 配置超时时间
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 	defer cancel()
-	chatCompletion, err := newClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+
+	// 构建请求参数
+	params := openai.ChatCompletionNewParams{
 		Messages: aiMessages,
 		Model:    OpenaiModel,
 		// MaxTokens: openai.Int(1000),
-	},
-	)
+	}
+
+	// 设置推理努力级别（适用于 o-series 模型）
+	switch OpenaiReasoningEffort {
+	case "low":
+		params.ReasoningEffort = openai.ReasoningEffortLow
+	case "medium":
+		params.ReasoningEffort = openai.ReasoningEffortMedium
+	case "high":
+		params.ReasoningEffort = openai.ReasoningEffortHigh
+	}
+
+	chatCompletion, err := newClient.Chat.Completions.New(ctx, params)
+
 	if err != nil {
 		return "", err
 	}
