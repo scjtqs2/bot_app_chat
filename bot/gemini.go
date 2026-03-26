@@ -25,10 +25,10 @@ import (
 
 // gemini的配置
 var (
-	GeminiEndpoint      = "https://generativelanguage.googleapis.com"
-	GeminiAPIKey        = ""
-	GeminiModel         = "gemini-1.5-flash"
-	GeminiProxy         = "" // 代理地址，例如 http://127.0.0.1:7890
+	GeminiEndpoint           = "https://generativelanguage.googleapis.com"
+	GeminiAPIKey             = ""
+	GeminiModel              = "gemini-1.5-flash"
+	GeminiProxy              = ""    // 代理地址，例如 http://127.0.0.1:7890
 	GeminiInsecureSkipVerify = false // 是否跳过TLS证书验证
 )
 
@@ -142,6 +142,11 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 		switch msg.Type {
 		case coolq.IMAGE:
 			f := msg.Data["file"]
+			if !strings.HasPrefix(f, "http") && !strings.HasPrefix(f, "file") && !strings.HasPrefix(f, "base64://") {
+				if u, ok := msg.Data["url"]; ok && u != "" {
+					f = u
+				}
+			}
 			var imgData []byte
 			contentType := ""
 			mimeType := "image/jpeg"
@@ -166,6 +171,11 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 				}
 				if strings.Contains(contentType, "png") {
 					mimeType = "image/png"
+				}
+			} else {
+				if !strings.HasPrefix(f, "http") && !strings.HasPrefix(f, "data:") && !strings.HasPrefix(f, "base64://") {
+					log.Warnf("未知的图片前缀格式，抛弃该图片避免 API 报错: %s", f)
+					continue // 直接跳过这个图片，不继续往下组装 parts
 				}
 			}
 			parts = append(parts, genai.NewPartFromBytes(imgData, mimeType))
