@@ -100,7 +100,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		}
 	}()
 	for _, msg := range msgs {
-		log.Infof("msg: %v", msg)
+		log.Debugf("msg: %v", msg)
 		var err error
 		switch msg.Type {
 		case coolq.IMAGE:
@@ -167,7 +167,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 					},
 				},
 			}
-			log.Infof("image f=%s imageURL=%s", f, imageURL)
+			log.Debugf("image f=%s imageURL=%s", f, imageURL)
 			aiMessages = append(aiMessages, openai.UserMessage(parts))
 			Msglog.AddMsg(groupID, userID, imageURL, false, MsgTypeImage, mimeType)
 		case coolq.TEXT:
