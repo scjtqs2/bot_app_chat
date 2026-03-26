@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/shared"
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/coolq"
 	"github.com/scjtqs2/bot_adapter/pb/entity"
@@ -72,13 +73,17 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 				if s.IsSystem {
 					// 暂时不支持
 				} else {
-					aiMessages = append(aiMessages, openai.UserMessageParts(openai.ChatCompletionContentPartImageParam{
-						Type: openai.F(openai.ChatCompletionContentPartImageTypeImageURL),
-						ImageURL: openai.F(openai.ChatCompletionContentPartImageImageURLParam{
-							URL:    openai.F(s.Msg),
-							Detail: openai.F(openai.ChatCompletionContentPartImageImageURLDetailHigh),
-						}),
-					}))
+					parts := []openai.ChatCompletionContentPartUnionParam{
+						{
+							OfImageURL: &openai.ChatCompletionContentPartImageParam{
+								ImageURL: openai.ChatCompletionContentPartImageImageURLParam{
+									URL:    s.Msg,
+									Detail: "high",
+								},
+							},
+						},
+					}
+					aiMessages = append(aiMessages, openai.UserMessage(parts))
 				}
 			}
 
@@ -124,15 +129,17 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 				}
 				f = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
 			}
-			// log.Info("chatgpt image  url=%s img=%s err=%v", msg.Data["file"], f, err)
-			// aiMessages = append(aiMessages, openai.UserMessageParts(openai.ImagePart(f)))
-			aiMessages = append(aiMessages, openai.UserMessageParts(openai.ChatCompletionContentPartImageParam{
-				Type: openai.F(openai.ChatCompletionContentPartImageTypeImageURL),
-				ImageURL: openai.F(openai.ChatCompletionContentPartImageImageURLParam{
-					URL:    openai.F(f),
-					Detail: openai.F(openai.ChatCompletionContentPartImageImageURLDetailHigh),
-				}),
-			}))
+			parts := []openai.ChatCompletionContentPartUnionParam{
+				{
+					OfImageURL: &openai.ChatCompletionContentPartImageParam{
+						ImageURL: openai.ChatCompletionContentPartImageImageURLParam{
+							URL:    f,
+							Detail: "high",
+						},
+					},
+				},
+			}
+			aiMessages = append(aiMessages, openai.UserMessage(parts))
 			Msglog.AddMsg(groupID, userID, f, false, MsgTypeImage, mimeType)
 		case coolq.TEXT:
 			aiMessages = append(aiMessages, openai.UserMessage(msg.Data["text"]))
@@ -146,16 +153,16 @@ func LmStudioText(message string, userID int64, groupID int64, botAdapterClient 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	chatCompletion, err := newClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Messages: openai.F(aiMessages),
-		Model:    openai.F(LmStudioModel),
+		Messages: aiMessages,
+		Model:    shared.ChatModel(LmStudioModel),
 		// MaxTokens: openai.Int(1000),
 	},
 	)
 	if err != nil {
 		return "", err
 	}
-	if strings.HasPrefix(chatCompletion.ID, "error") || len(chatCompletion.Choices) == 0 {
-		return "", errors.New(chatCompletion.JSON.RawJSON())
+	if len(chatCompletion.Choices) == 0 {
+		return "", errors.New("no choices returned")
 	}
 	return chatCompletion.Choices[0].Message.Content, nil
 }
