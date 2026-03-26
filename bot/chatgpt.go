@@ -100,6 +100,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 		}
 	}()
 	for _, msg := range msgs {
+		log.Infof("msg: %v", msg)
 		var err error
 		switch msg.Type {
 		case coolq.IMAGE:
