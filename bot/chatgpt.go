@@ -114,7 +114,8 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 					r := Request{URL: f, Limit: maxImageSize}
 					b, contentType, err = r.Bytes()
 					if err != nil {
-						log.Errorf("r.Bytes() faild err=%v", err)
+						log.Errorf("http r.Bytes() failed err=%v", err)
+						continue // 修复点：下载失败必须跳过，绝不能把空数据发给 API
 					}
 					if strings.Contains(contentType, "png") {
 						mimeType = "image/png"
@@ -126,18 +127,24 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 			case strings.HasPrefix(f, "file"):
 				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
 				if err != nil {
-					return "", err
+					log.Errorf("GetImage failed err=%v", err)
+					continue // 修复点：获取图片失败必须跳过
 				}
 				var b []byte
 				r := Request{URL: img.File, Limit: maxImageSize}
 				b, contentType, err = r.Bytes()
 				if err != nil {
-					log.Errorf("r.Bytes() faild err=%v", err)
+					log.Errorf("file r.Bytes() failed err=%v", err)
+					continue // 修复点：下载失败必须跳过
 				}
 				if strings.Contains(contentType, "png") {
 					mimeType = "image/png"
 				}
 				imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(b))
+			case strings.HasPrefix(f, "base64://"):
+				// 修复点：新增 base64 前缀的直接拦截
+				b64Str := strings.TrimPrefix(f, "base64://")
+				imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, b64Str)
 			default:
 				imageURL = f
 			}
