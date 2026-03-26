@@ -146,7 +146,11 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 				b64Str := strings.TrimPrefix(f, "base64://")
 				imageURL = fmt.Sprintf("data:%s;base64,%s", mimeType, b64Str)
 			default:
-				imageURL = f
+				// 修复点 2：防止不知名的文件格式绕过校验发给 API
+				if !strings.HasPrefix(f, "http") && !strings.HasPrefix(f, "data:") {
+					log.Warnf("未知的图片前缀格式，抛弃该图片避免 API 报错: %s", f)
+					continue // 直接跳过这个图片，不继续往下组装 parts
+				}
 			}
 			parts := []openai.ChatCompletionContentPartUnionParam{
 				{
@@ -158,6 +162,7 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 					},
 				},
 			}
+			log.Infof("image f=%s imageURL=%s", f, imageURL)
 			aiMessages = append(aiMessages, openai.UserMessage(parts))
 			Msglog.AddMsg(groupID, userID, imageURL, false, MsgTypeImage, mimeType)
 		case coolq.TEXT:
