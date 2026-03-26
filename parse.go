@@ -132,8 +132,11 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootID in
 	if !isGroup {
 		// 私聊
 		text, err := bot.TulingText(message, userID, groupID)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("tuling msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -152,8 +155,11 @@ func tuling(message string, userID int64, groupID int64, isGroup bool, bootID in
 	}
 	if msg != "" {
 		text, err := bot.TulingText(msg, userID, groupID)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("tuling msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
@@ -170,8 +176,11 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootID
 	if !isGroup {
 		// 私聊
 		text, err := bot.QingyunkeText(message, userID, groupID)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("qingyunke msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -190,8 +199,11 @@ func qingyunke(message string, userID int64, groupID int64, isGroup bool, bootID
 	}
 	if msg != "" {
 		text, err := bot.QingyunkeText(msg, userID, groupID)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("qingyunke msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
@@ -208,8 +220,11 @@ func chatgpt(message string, userID int64, groupID int64, isGroup bool, bootID i
 	if !isGroup {
 		// 私聊
 		text, err := bot.ChatGptText(message, userID, groupID, botAdapterClient)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("chatgpt msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -228,8 +243,11 @@ func chatgpt(message string, userID int64, groupID int64, isGroup bool, bootID i
 	}
 	if msg != "" {
 		text, err := bot.ChatGptText(msg, userID, groupID, botAdapterClient)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("chatgpt msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
@@ -246,8 +264,15 @@ func geminiText(message string, userID int64, groupID int64, isGroup bool, bootI
 	if !isGroup {
 		// 私聊
 		text, err := bot.GeminiText(message, userID, groupID, botAdapterClient)
-		if err != nil || text == "" {
-			log.Errorf("gemini msg error:%v", err)
+		if err != nil {
+			if err.Error() == "empty" {
+				log.Infof("gemini msg info:%v", err)
+			} else {
+				log.Errorf("gemini msg error:%v", err)
+			}
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -266,8 +291,15 @@ func geminiText(message string, userID int64, groupID int64, isGroup bool, bootI
 	}
 	if msg != "" {
 		text, err := bot.GeminiText(msg, userID, groupID, botAdapterClient)
-		if err != nil || text == "" {
-			log.Errorf("gemini msg error:%v", err)
+		if err != nil {
+			if err.Error() == "empty" {
+				log.Infof("gemini msg info:%v", err)
+			} else {
+				log.Errorf("gemini msg error:%v", err)
+			}
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{
@@ -284,8 +316,11 @@ func lmStudioChat(message string, userID int64, groupID int64, isGroup bool, boo
 	if !isGroup {
 		// 私聊
 		text, err := bot.LmStudioText(message, userID, groupID, botAdapterClient)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("lmstudio msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendPrivateMsg(context.TODO(), &entity.SendPrivateMsgReq{
@@ -304,8 +339,11 @@ func lmStudioChat(message string, userID int64, groupID int64, isGroup bool, boo
 	}
 	if msg != "" {
 		text, err := bot.LmStudioText(msg, userID, groupID, botAdapterClient)
-		if err != nil || text == "" {
+		if err != nil {
 			log.Errorf("lmstudio msg error:%v", err)
+			return false
+		}
+		if text == "" {
 			return false
 		}
 		_, _ = botAdapterClient.SendGroupMsg(context.TODO(), &entity.SendGroupMsgReq{

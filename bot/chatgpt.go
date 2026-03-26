@@ -156,6 +156,10 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	},
 	)
 	if err != nil {
+		var apiError *openai.APIError
+		if errors.As(err, &apiError) {
+			return "", fmt.Errorf("API error: %w, response: %s", err, string(apiError.RawBody()))
+		}
 		return "", err
 	}
 	if len(chatCompletion.Choices) == 0 {

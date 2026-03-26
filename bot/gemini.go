@@ -3,15 +3,16 @@ package bot
 import (
 	"context"
 	"errors"
-	"github.com/google/generative-ai-go/genai"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/scjtqs2/bot_adapter/client"
 	"github.com/scjtqs2/bot_adapter/coolq"
 	"github.com/scjtqs2/bot_adapter/pb/entity"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 	"os"
-	"strings"
-	"time"
 )
 
 /**
@@ -23,7 +24,7 @@ import (
 var (
 	GeminiEndpoint = "https://generativelanguage.googleapis.com"
 	GeminiApiKey   = ""
-	GeminiModel    = "gemini-2.0-flash"
+	GeminiModel    = "gemini-1.5-flash"
 )
 
 // init 初始化变量
@@ -42,95 +43,81 @@ func init() {
 // GeminiText 处理文字
 func GeminiText(message string, userID int64, groupID int64, botAdapterClient *client.AdapterService) (rsp string, err error) {
 	if GeminiApiKey == "" {
-		return "", errors.New("empyt openai api key")
+		return "", errors.New("empty gemini api key")
 	}
 	// 配置超时时间
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 	defer cancel()
-	// Access your API key as an environment variable (see "Set up your API key" above)
-	newClient, err := genai.NewClient(ctx, option.WithAPIKey(GeminiApiKey), option.WithEndpoint(GeminiEndpoint))
+
+	// 创建新的 genai 客户端
+	newClient, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  GeminiApiKey,
+		Backend: genai.BackendGeminiAPI,
+	})
 	if err != nil {
 		log.Error(err)
 		return "", err
 	}
-	defer newClient.Close()
 
-	model := newClient.GenerativeModel(GeminiModel)
-	cs := model.StartChat()
-	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
-	aiMessages := make([]genai.Part, 0)
+	// 构建历史消息
+	var history []*genai.Content
+
+	// 添加系统提示
 	prompt := "你是一个智能助手，你只能用中文回答所有问题。"
-	cs.History = append(cs.History, &genai.Content{
-		Parts: []genai.Part{
-			genai.Text(prompt),
-		},
-		Role: "user",
-	})
-	oldMsgLen := 0
-	// if groupID != 0 {
+	history = append(history, genai.NewContentFromText(prompt, genai.RoleUser))
+	history = append(history, genai.NewContentFromText("好的", genai.RoleModel))
+
+	// 添加历史消息
 	oldMsgs := Msglog.GetMsgs(groupID, userID)
 	if oldMsgs != nil {
-		oldMsgLen = len(oldMsgs)
 		for _, s := range oldMsgs {
 			switch s.msgType {
 			case MsgTypeText:
 				if s.IsSystem {
-					cs.History = append(cs.History, &genai.Content{
-						Parts: []genai.Part{
-							genai.Text(s.Msg),
-						},
-						Role: "model",
-					})
+					history = append(history, genai.NewContentFromText(s.Msg, genai.RoleModel))
 				} else {
-					cs.History = append(cs.History, &genai.Content{
-						Parts: []genai.Part{
-							genai.Text(s.Msg),
-						},
-						Role: "user",
-					})
+					history = append(history, genai.NewContentFromText(s.Msg, genai.RoleUser))
 				}
 			case MsgTypeImage:
+				parts := []*genai.Part{
+					genai.NewPartFromBytes([]byte(s.Msg), s.mimeType),
+				}
 				if s.IsSystem {
-					cs.History = append(cs.History, &genai.Content{
-						Parts: []genai.Part{
-							genai.ImageData(s.mimeType, []byte(s.Msg)),
-						},
-						Role: "model",
-					})
+					history = append(history, genai.NewContentFromParts(parts, genai.RoleModel))
 				} else {
-					cs.History = append(cs.History, &genai.Content{
-						Parts: []genai.Part{
-							genai.ImageData(s.mimeType, []byte(s.Msg)),
-						},
-						Role: "user",
-					})
+					history = append(history, genai.NewContentFromParts(parts, genai.RoleUser))
 				}
 			}
-
 		}
 	}
-	// }
+
 	defer func() {
 		if err == nil {
 			Msglog.AddMsg(groupID, userID, rsp, true, MsgTypeText, "")
 		}
 	}()
+
+	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
+	if len(msgs) == 0 {
+		return "", errors.New("empty")
+	}
+
+	var parts []*genai.Part
 	for _, msg := range msgs {
-		var err error
 		switch msg.Type {
 		case coolq.IMAGE:
 			f := msg.Data["file"]
 			var imgData []byte
 			contentType := ""
-			mimeType := "jpeg"
+			mimeType := "image/jpeg"
 			if strings.HasPrefix(f, "http") {
 				r := Request{URL: f, Limit: maxImageSize}
 				imgData, contentType, err = r.Bytes()
 				if err != nil {
-					log.Errorf("r.Bytes() faild err=%v", err)
+					log.Errorf("r.Bytes() failed err=%v", err)
 				}
 				if strings.Contains(contentType, "png") {
-					mimeType = "png"
+					mimeType = "image/png"
 				}
 			} else if strings.HasPrefix(f, "file") {
 				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
@@ -140,35 +127,47 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 				r := Request{URL: img.File, Limit: maxImageSize}
 				imgData, contentType, err = r.Bytes()
 				if err != nil {
-					log.Errorf("r.Bytes() faild err=%v", err)
+					log.Errorf("r.Bytes() failed err=%v", err)
 				}
 				if strings.Contains(contentType, "png") {
-					mimeType = "png"
+					mimeType = "image/png"
 				}
 			}
-			aiMessages = append(aiMessages, genai.ImageData(mimeType, imgData))
+			parts = append(parts, genai.NewPartFromBytes(imgData, mimeType))
 			Msglog.AddMsg(groupID, userID, string(imgData), false, MsgTypeImage, mimeType)
 		case coolq.TEXT:
-			aiMessages = append(aiMessages, genai.Text(msg.Data["text"]))
+			parts = append(parts, genai.NewPartFromText(msg.Data["text"]))
 			Msglog.AddMsg(groupID, userID, msg.Data["text"], false, MsgTypeText, "")
 		}
 	}
-	if len(aiMessages) == oldMsgLen {
-		return "", errors.New("empty")
-	}
 
-	resp, err := cs.SendMessage(ctx, aiMessages...)
+	// 创建聊天会话 - 注意参数顺序: model, config, history
+	chat, err := newClient.Chats.Create(ctx, GeminiModel, nil, history)
 	if err != nil {
 		return "", err
 	}
-	rspText := ""
+
+	// 发送消息
+	resp, err := chat.Send(ctx, parts...)
+	if err != nil {
+		return "", err
+	}
+
+	// 提取响应文本
+	var rspText string
 	if resp.Candidates != nil {
-		for _, v := range resp.Candidates {
-			for _, k := range v.Content.Parts {
-				// fmt.Println(k.(genai.Text))
-				rspText += string(k.(genai.Text))
+		for _, candidate := range resp.Candidates {
+			if candidate.Content != nil {
+				for _, part := range candidate.Content.Parts {
+					if part.Text != "" {
+						rspText += part.Text
+					}
+				}
 			}
 		}
 	}
-	return rspText, err
+	if rspText == "" {
+		return "", fmt.Errorf("empty response from gemini")
+	}
+	return rspText, nil
 }
