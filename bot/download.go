@@ -17,11 +17,6 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func init() {
-	// 修正 go1.22之后的 remote error: tls: handshake failure 问题
-	os.Setenv("GODEBUG", "tlsrsakex=1") //nolint:errcheck
-}
-
 const (
 	maxImageSize = 1024 * 1024 * 30 // 30MB
 )
@@ -32,7 +27,7 @@ var hclient = &http.Client{
 		MaxConnsPerHost:     0,
 		MaxIdleConns:        0,
 		MaxIdleConnsPerHost: 999,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: false},
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 	},
 	Timeout: time.Second * 60,
 }
