@@ -24,8 +24,8 @@ var (
 	OpenaiEndpoint        = "https://api.openai.com/v1/"
 	OpenaiAPIKey          = ""
 	OpenaiModel           = openai.ChatModelGPT4oMini
-	OpenaiReasoningEffort = ""    // 推理努力级别：low|medium|high（适用于o1等推理模型）
-	OpenaiImageUseBase64  = false // 图片是否使用base64方式而非URL方式
+	OpenaiReasoningEffort = "low" // 推理努力级别：low|medium|high（适用于o1等推理模型）
+	OpenaiImageUseBase64  = true  // 图片是否使用base64方式而非URL方式
 )
 
 // init 初始化变量

@@ -28,8 +28,8 @@ var (
 	GeminiEndpoint           = "https://generativelanguage.googleapis.com"
 	GeminiAPIKey             = ""
 	GeminiModel              = "gemini-1.5-flash"
-	GeminiProxy              = ""    // 代理地址，例如 http://127.0.0.1:7890
-	GeminiInsecureSkipVerify = false // 是否跳过TLS证书验证
+	GeminiProxy              = ""   // 代理地址，例如 http://127.0.0.1:7890
+	GeminiInsecureSkipVerify = true // 是否跳过TLS证书验证
 )
 
 // init 初始化变量
