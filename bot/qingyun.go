@@ -41,7 +41,7 @@ func QingyunkeText(message string, _ int64, _ int64) (string, error) {
 
 func get(getURL string) ([]byte, error) {
 	var res *http.Response
-	client := http.Client{Timeout: time.Second * 8}
+	client := NewHTTPClient(time.Second * 8)
 	header := make(http.Header)
 	req, err := http.NewRequest("GET", getURL, nil)
 	if err != nil {

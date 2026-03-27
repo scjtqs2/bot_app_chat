@@ -52,10 +52,12 @@ func ChatGptText(message string, userID int64, groupID int64, botAdapterClient *
 	if OpenaiAPIKey == "" {
 		return "", errors.New("empyt openai api key")
 	}
+	httpClient := NewHTTPClient(60 * time.Minute)
 	newClient := openai.NewClient(
 		// azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
 		option.WithBaseURL(OpenaiEndpoint),
 		option.WithAPIKey(OpenaiAPIKey), // defaults to os.LookupEnv("OPENAI_API_KEY")
+		option.WithHTTPClient(httpClient),
 	)
 	msgs := coolq.DeCode(message) // 将字符串格式转成 array格式
 	aiMessages := make([]openai.ChatCompletionMessageParamUnion, 0)

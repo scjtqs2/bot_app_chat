@@ -3,10 +3,12 @@ package bot
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,15 +23,162 @@ const (
 	maxImageSize = 1024 * 1024 * 30 // 30MB
 )
 
-var hclient = &http.Client{
-	Transport: &http.Transport{
-		ForceAttemptHTTP2:   false,
-		MaxConnsPerHost:     0,
-		MaxIdleConns:        0,
-		MaxIdleConnsPerHost: 999,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+// 自定义 DNS 配置
+var (
+	UseCustomDNS = false // 是否使用自定义 DNS，默认为 false
+)
+
+func init() {
+	// 从环境变量读取配置
+	if os.Getenv("USE_CUSTOM_DNS") == "true" || os.Getenv("USE_CUSTOM_DNS") == "1" {
+		UseCustomDNS = true
+	}
+}
+
+// customResolver 使用指定 DNS 服务器的 resolver
+var customResolver = &net.Resolver{
+	PreferGo: true,
+	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		dnsServers := []string{
+			"223.5.5.5:53",   // AliDNS
+			"119.29.29.29:53", // DNSPod
+		}
+		for _, dnsServer := range dnsServers {
+			d := net.Dialer{
+				Timeout: 5 * time.Second,
+			}
+			conn, err := d.DialContext(ctx, "udp", dnsServer)
+			if err == nil {
+				return conn, nil
+			}
+		}
+		// 回退到系统默认
+		d := net.Dialer{
+			Timeout: 5 * time.Second,
+		}
+		return d.DialContext(ctx, network, address)
 	},
-	Timeout: time.Second * 60,
+}
+
+// dialContext 自定义拨号函数，使用自定义 DNS
+func dialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		host = address
+		port = "443"
+		if network == "tcp" && !strings.Contains(address, ":") {
+			port = "80"
+		}
+	}
+
+	ips, err := customResolver.LookupIP(ctx, "ip", host)
+	if err != nil {
+		// 如果自定义 DNS 失败，回退到系统默认
+		ips, err = net.LookupIP(host)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("no IPs found for %s", host)
+	}
+
+	d := net.Dialer{
+		Timeout: 30 * time.Second,
+	}
+	var lastErr error
+	for _, ip := range ips {
+		addr := net.JoinHostPort(ip.String(), port)
+		conn, err := d.DialContext(ctx, network, addr)
+		if err == nil {
+			return conn, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+// dialTLSContext 自定义 TLS 拨号函数，保留 SNI
+func dialTLSContext(ctx context.Context, network, address string) (net.Conn, error) {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		host = address
+	}
+
+	// 先建立 TCP 连接
+	plainConn, err := dialContext(ctx, network, address)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建 TLS 连接，保留原始主机名用于 SNI
+	tlsConn := tls.Client(plainConn, &tls.Config{
+		ServerName:         host, // 关键：设置 SNI
+		InsecureSkipVerify: true,
+	})
+
+	// 执行 TLS 握手
+	handshakeCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	if err := tlsConn.HandshakeContext(handshakeCtx); err != nil {
+		plainConn.Close()
+		return nil, err
+	}
+
+	return tlsConn, nil
+}
+
+// NewHTTPTransport 创建 HTTP Transport，根据配置决定是否使用自定义 DNS
+func NewHTTPTransport() *http.Transport {
+	if UseCustomDNS {
+		return &http.Transport{
+			ForceAttemptHTTP2:     false,
+			MaxConnsPerHost:       0,
+			MaxIdleConns:          0,
+			MaxIdleConnsPerHost:   999,
+			TLSHandshakeTimeout:   15 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
+			DialContext:           dialContext,
+			DialTLSContext:        dialTLSContext,
+		}
+	}
+	// 默认使用系统 DNS，但仍然保留 TLS 配置
+	return &http.Transport{
+		ForceAttemptHTTP2:     false,
+		MaxConnsPerHost:       0,
+		MaxIdleConns:          0,
+		MaxIdleConnsPerHost:   999,
+		TLSHandshakeTimeout:   15 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+}
+
+// NewHTTPClient 创建使用自定义 DNS 的 HTTP Client
+func NewHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Transport: NewHTTPTransport(),
+		Timeout:   timeout,
+	}
+}
+
+var (
+	hclientOnce sync.Once
+	hclient     *http.Client
+)
+
+// getHClient 获取懒加载的 HTTP 客户端
+func getHClient() *http.Client {
+	hclientOnce.Do(func() {
+		hclient = &http.Client{
+			Transport: NewHTTPTransport(),
+			Timeout:   time.Second * 60,
+		}
+	})
+	return hclient
 }
 
 // ErrOverSize 响应主体过大时返回此错误
@@ -56,7 +205,7 @@ func (r Request) do() (*http.Response, error) {
 		req.Header.Set(k, v)
 	}
 
-	return hclient.Do(req)
+	return getHClient().Do(req)
 }
 
 func (r Request) body() (io.ReadCloser, string, error) {

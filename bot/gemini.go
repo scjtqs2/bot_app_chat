@@ -2,7 +2,7 @@ package bot
 
 import (
 	"context"
-	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -66,28 +66,24 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 		Backend: genai.BackendGeminiAPI,
 	}
 
-	// 如果配置了代理或跳过TLS验证，创建自定义HTTP客户端
-	if GeminiProxy != "" || GeminiInsecureSkipVerify {
-		httpClient := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: GeminiInsecureSkipVerify,
-				},
-			},
-		}
-
-		// 设置代理
-		if GeminiProxy != "" {
-			proxyURL, err := url.Parse(GeminiProxy)
-			if err == nil {
-				httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
-			} else {
-				log.Errorf("Invalid proxy URL: %v", err)
-			}
-		}
-
-		clientConfig.HTTPClient = httpClient
+	// 创建使用自定义 DNS 的 HTTP 客户端
+	transport := NewHTTPTransport()
+	httpClient := &http.Client{
+		Transport: transport,
+		Timeout:   60 * time.Minute,
 	}
+
+	// 设置代理
+	if GeminiProxy != "" {
+		proxyURL, err := url.Parse(GeminiProxy)
+		if err == nil {
+			transport.Proxy = http.ProxyURL(proxyURL)
+		} else {
+			log.Errorf("Invalid proxy URL: %v", err)
+		}
+	}
+
+	clientConfig.HTTPClient = httpClient
 
 	// 创建新的 genai 客户端
 	newClient, err := genai.NewClient(ctx, clientConfig)
@@ -150,36 +146,53 @@ func GeminiText(message string, userID int64, groupID int64, botAdapterClient *c
 			var imgData []byte
 			contentType := ""
 			mimeType := "image/jpeg"
+			downloadSuccess := false
 			if strings.HasPrefix(f, "http") {
 				r := Request{URL: f, Limit: maxImageSize}
 				imgData, contentType, err = r.Bytes()
 				if err != nil {
 					log.Errorf("r.Bytes() failed err=%v", err)
+					continue // 下载失败必须跳过
 				}
+				downloadSuccess = true
 				if strings.Contains(contentType, "png") {
 					mimeType = "image/png"
 				}
 			} else if strings.HasPrefix(f, "file") {
 				img, err := botAdapterClient.GetImage(context.TODO(), &entity.GetImageReq{File: f})
 				if err != nil {
-					return "", err
+					log.Errorf("GetImage failed err=%v", err)
+					continue // 获取图片失败必须跳过
 				}
 				r := Request{URL: img.File, Limit: maxImageSize}
 				imgData, contentType, err = r.Bytes()
 				if err != nil {
 					log.Errorf("r.Bytes() failed err=%v", err)
+					continue // 下载失败必须跳过
 				}
+				downloadSuccess = true
 				if strings.Contains(contentType, "png") {
 					mimeType = "image/png"
 				}
+			} else if strings.HasPrefix(f, "base64://") {
+				b64Str := strings.TrimPrefix(f, "base64://")
+				var decodeErr error
+				imgData, decodeErr = base64.StdEncoding.DecodeString(b64Str)
+				if decodeErr != nil {
+					log.Errorf("base64 decode failed err=%v", decodeErr)
+					continue
+				}
+				downloadSuccess = true
 			} else {
 				if !strings.HasPrefix(f, "http") && !strings.HasPrefix(f, "data:") && !strings.HasPrefix(f, "base64://") {
 					log.Warnf("未知的图片前缀格式，抛弃该图片避免 API 报错: %s", f)
 					continue // 直接跳过这个图片，不继续往下组装 parts
 				}
 			}
-			parts = append(parts, genai.NewPartFromBytes(imgData, mimeType))
-			Msglog.AddMsg(groupID, userID, string(imgData), false, MsgTypeImage, mimeType)
+			if downloadSuccess {
+				parts = append(parts, genai.NewPartFromBytes(imgData, mimeType))
+				Msglog.AddMsg(groupID, userID, string(imgData), false, MsgTypeImage, mimeType)
+			}
 		case coolq.TEXT:
 			parts = append(parts, genai.NewPartFromText(msg.Data["text"]))
 			Msglog.AddMsg(groupID, userID, msg.Data["text"], false, MsgTypeText, "")
